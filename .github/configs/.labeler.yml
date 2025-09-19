@@ -1,0 +1,3 @@
+github:
+  - changed-files:
+      - any-glob-to-any-file: '.github/**/*'
