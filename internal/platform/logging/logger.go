@@ -69,23 +69,12 @@ func (l LogLevel) String() string {
 	}
 }
 
-// LimitLevel limits the level to the maximum allowed if an invalid value is specified.
-//
-// Parameters:
-// - logLevel: logging level.
-func LimitLevel(logLevel LogLevel) LogLevel {
-	switch logLevel {
-	case LevelDebug:
-		return LevelDebug
-	case LevelInfo:
-		return LevelInfo
-	case LevelWarn:
-		return LevelWarn
-	case LevelError:
-		return LevelError
-	case LevelFatal:
-		return LevelFatal
+// Limit limits the level to the maximum allowed if an invalid value is specified.
+func (l LogLevel) Limit() LogLevel {
+	switch l {
+	case LevelDebug, LevelInfo, LevelWarn, LevelError, LevelFatal:
+		return l
 	default:
-		return LevelError
+		return LevelFatal
 	}
 }
