@@ -18,7 +18,7 @@ The structure of this folder is as follows:
 
 ## Golangci-Lint Settings
 
-The linter settings are taken from the official documentation and mostly include the default settings, but with some modifications.
+The linter settings are taken from the official [documentation](https://golangci-lint.run/docs/configuration/file/) and mostly include the default settings, but with some modifications.
 
 ### Changes to linter settings
 
@@ -56,4 +56,3 @@ The following linters are either disabled or have had their settings changed:
        - pattern: "^print(ln)?$"
          msg: Do not use print() for log output.
   ```
-
