@@ -8,6 +8,8 @@ import (
 )
 
 func TestLogLevel_String(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		l    logging.LogLevel
@@ -45,7 +47,11 @@ func TestLogLevel_String(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			exp := tt.want
 			act := tt.l.String()
 
@@ -55,6 +61,8 @@ func TestLogLevel_String(t *testing.T) {
 }
 
 func TestLogLevel_Limit(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name string
 		l    logging.LogLevel
@@ -92,7 +100,11 @@ func TestLogLevel_Limit(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
+
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			exp := tt.want
 			act := tt.l.Limit()
 
