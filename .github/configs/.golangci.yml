@@ -106,13 +106,12 @@ linters:
     - wastedassign
     - whitespace
     - wrapcheck
-    - wsl
+    # - wsl # deprecated, replaced by wsl_v5
     - wsl_v5
     - zerologlint
   settings:
     # arangolint:
     # asasalint:
-    #   ignore-test: false
     # asciicheck:
     # bidichk:
     # bodyclose:
@@ -125,14 +124,11 @@ linters:
     depguard:
       rules:
         main:
-          list-mode: original
-          files:
+          files: # Default: $all
             - "**/cmd/**/main.go"
-            - "**/cmd/**/main.go"
-          allow:
+          allow: # Default: []
             - "github.com/mr-filatik/go-password-keeper/internal/client"
             - "github.com/mr-filatik/go-password-keeper/internal/server"
-          deny: []
     # dogsled:
     # dupl:
     # dupword:
@@ -145,19 +141,17 @@ linters:
     # errorlint:
     # exhaustive:
     exhaustruct:
-      exclude:
+      exclude: # Default: []
         - '(?i)^(?:.*/)?(?:[^.]+\.)?(mock|Mock)\w*$'
         - '(?i)^(?:.*/)?(?:[^.]+\.)?(fake|Fake)\w*$'
     # exptostd:
     # fatcontext:
     forbidigo:
       forbid: # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
-        - pattern: "^(fmt\\.Print(|f|ln)|print|println)$"
-          msg: Do not use fmt.Print, fmt,Printf and fmt.Println for log output.
-        - pattern: ^print(ln)?$
-          msg: Do not use print() for log output.
-      exclude-godoc-examples: true
-      analyze-types: false
+       - pattern: "^(fmt\\.Print(|f|ln)|print|println)$"
+         msg: Do not use fmt.Print, fmt,Printf and fmt.Println for log output.
+       - pattern: "^print(ln)?$"
+         msg: Do not use print() for log output.
     # forcetypeassert:
     # funcorder:
     # funlen:
@@ -201,8 +195,6 @@ linters:
     # nilnesserr:
     # nilnil:
     # nlreturn:
-    nlreturn:
-      block-size: 1
     # noctx:
     # noinlineerr:
     # nolintlint:
@@ -238,7 +230,7 @@ linters:
     # wastedassign:
     # whitespace:
     # wrapcheck:
-    # wsl:
+    # wsl: # deprecated, replaced by wsl_v5
     # wsl_v5:
     # zerologlint:
 formatters:
