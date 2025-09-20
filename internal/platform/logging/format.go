@@ -1,14 +1,14 @@
 // Package logging provides logging functionality.
 package logging
 
-// LogFormat — формат вывода логов.
+// LogFormat — log output format.
 type LogFormat string
 
-// Constants - описание типа вывода логов.
+// Constants - description of the log output type.
 const (
-	// FormatJSON - вывод логов в формате JSON.
+	// FormatJSON - output logs in JSON format.
 	FormatJSON LogFormat = "JSON"
 
-	// FormatText - вывод логов в текстовом формате.
+	// FormatText - output logs in text format.
 	FormatText LogFormat = "TEXT"
 )
