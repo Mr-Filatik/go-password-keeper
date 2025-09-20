@@ -102,7 +102,7 @@ func TestLogLevel_Limit(t *testing.T) {
 			t.Parallel()
 
 			exp := tt.want
-			act := tt.l.Limit()
+			act := tt.l.Validate()
 
 			assert.Equalf(t, exp, act, "LogLevel.Limit() = %v, want %v", act, exp)
 		})
