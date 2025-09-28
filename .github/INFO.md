@@ -1,3 +1,5 @@
+[Main documentation page](../README.md)
+
 # Description
 
 A dedicated folder for `GitHub`. Contains all workflows, their configs, and other useful files required by `GitHub`.
@@ -93,7 +95,6 @@ The following linters are either disabled or have had their settings changed:
       ignore-names: # Default: []
         - tt # using in table-driven tests
   ```
-
 
 * ❌ `wcl` - removed
 

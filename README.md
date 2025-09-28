@@ -2,7 +2,7 @@
 
 A password storage project written in Go. It consists of two projects: a server (the core logic) and CLI-clients (server access). Clients are available for Windows, Linux, and Mac.
 
-## Описание отдельных компонентов проекта
+## Description of individual project components
 
-* Workflows и их конфиги описаны [здесь](/.github/INFO.md).
-* Скрипты используемые для работы с проектом описаны [здесь](/scripts/INFO.md).
+* Workflows and their configurations are described [here](/.github/INFO.md).
+* The scripts used to work with the project are described [here](/scripts/INFO.md).
