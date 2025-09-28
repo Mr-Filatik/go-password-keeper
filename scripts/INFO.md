@@ -1,3 +1,5 @@
+[Main documentation page](../README.md)
+
 # Description
 
 This folder contains startup and build scripts, and auxiliary CLI utilities for working with the project during development.
