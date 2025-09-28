@@ -51,6 +51,7 @@ func NewZapSugarLogger(
 	case FormatText:
 		encoder = zapcore.NewConsoleEncoder(config)
 	default:
+		format = FormatJSON
 		encoder = zapcore.NewJSONEncoder(config)
 	}
 

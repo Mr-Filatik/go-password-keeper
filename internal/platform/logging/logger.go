@@ -22,6 +22,21 @@ const (
 
 	// LevelFatal - fatal logging level.
 	LevelFatal
+
+	// DefaultLevel - minimum log limit level.
+	DefaultLevel = LevelError
+)
+
+// LogFormat — log output format.
+type LogFormat string
+
+// Constants - description of the log output type.
+const (
+	// FormatJSON - output logs in JSON format.
+	FormatJSON LogFormat = "JSON"
+
+	// FormatText - output logs in text format.
+	FormatText LogFormat = "TEXT"
 )
 
 // Logger describes the interface for all loggers used in the project.
@@ -95,9 +110,11 @@ func (l LogLevel) String() string {
 // Validate limits the level to the maximum allowed if an invalid value is specified.
 func (l LogLevel) Validate() LogLevel {
 	switch l {
-	case LevelDebug, LevelInfo, LevelWarn, LevelError, LevelFatal:
+	case LevelDebug, LevelInfo, LevelWarn, LevelError:
 		return l
+	case LevelFatal:
+		return DefaultLevel
 	default:
-		return LevelFatal
+		return DefaultLevel
 	}
 }
