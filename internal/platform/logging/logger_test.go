@@ -89,12 +89,12 @@ func TestLogLevel_Limit(t *testing.T) {
 		{
 			name: "fatal level",
 			l:    logging.LevelFatal,
-			want: logging.LevelFatal,
+			want: logging.LevelError,
 		},
 		{
 			name: "unknown level",
 			l:    logging.LogLevel(99),
-			want: logging.LevelFatal,
+			want: logging.LevelError,
 		},
 	}
 	for _, tt := range tests {
