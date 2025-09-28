@@ -18,16 +18,16 @@ The structure of this folder is as follows:
 
 ## Golangci-Lint Settings
 
-The linter settings are taken from the official [documentation](https://golangci-lint.run/docs/configuration/file/) and mostly include the default settings, but with some modifications.
+The linter settings are taken from the official [documentation](https://golangci-lint.run/docs/configuration/file/) and mostly include the default settings, but with some modifications. The version in use at the time of writing the documentation is `2.4.0`.
 
 ### Changes to linter settings
 
 The following linters are either disabled or have had their settings changed:
 
-* ❌ wcl - removed
-  The linter 'wsl' is deprecated (since v2.2.0) due to: new major version. Replaced by wsl_v5.
-* ⚠️ depguard - settings changed
+* ⚠️ `depguard` - settings changed
+
   For all `main.go` executables launched from the `cmd` folder, the use of any packages other than those from `internal` that provide a method for launching the application is prohibited. For more details, see the [documentation](https://golangci-lint.run/docs/linters/configuration/#depguard).
+
   ```yml
     depguard:
       rules:
@@ -38,16 +38,32 @@ The following linters are either disabled or have had their settings changed:
             - "github.com/mr-filatik/go-password-keeper/internal/client"
             - "github.com/mr-filatik/go-password-keeper/internal/server"
   ```
-* ⚠️ exhaustruct - settings changed
+
+* ⚠️ `dupl` - exception added
+
+  An exception has been added to tests that removes the check for code duplication. More details in the [documentation](https://golangci-lint.run/docs/configuration/file/#linters-configuration).
+
+  ```yml
+      - path: _test\.go
+        linters:
+          - dupl
+  ```
+
+* ⚠️ `exhaustruct` - settings changed
+
   Added exceptions for checking entities whose names begin with `fake*`, `Fake*`, `mock*`, and `Mock*`. These are used only in tests. Because the type name includes packages, you need to search among all the `(?i)^(?:.*/)?(?:[^.]+\.)?` prefixes. More details in the [documentation](https://golangci-lint.run/docs/linters/configuration/#exhaustruct).
+
   ```yml
     exhaustruct:
       exclude: # Default: []
         - '(?i)^(?:.*/)?(?:[^.]+\.)?(mock|Mock)\w*$'
         - '(?i)^(?:.*/)?(?:[^.]+\.)?(fake|Fake)\w*$'
   ```
-* ⚠️ forbidigo - settings changed
+
+* ⚠️ `forbidigo` - settings changed
+
   The default value `^(fmt\\.Print(|f|ln)|print|println)$` has been modified to prohibit use of the `print()` function. More details in the [documentation](https://golangci-lint.run/docs/linters/configuration/#forbidigo).
+
   ```yml
     forbidigo:
       forbid: # Default: ["^(fmt\\.Print(|f|ln)|print|println)$"]
@@ -56,3 +72,29 @@ The following linters are either disabled or have had their settings changed:
        - pattern: "^print(ln)?$"
          msg: Do not use print() for log output.
   ```
+
+* ⚠️ `funlen` - exception added
+
+  An exception has been added to tests that removes checks for functions that begin with `getTests`. These functions are used to generate test data. More details in the [documentation](https://golangci-lint.run/docs/configuration/file/#linters-configuration).
+
+  ```yml
+      - path: _test\.go
+        linters:
+          - funlen
+        text: "^Function 'getTests"
+  ```
+
+* ⚠️ `varnamelen` - settings changed
+
+  Added `tt` to the names of variables used in table-driven tests. More details in the [documentation](https://golangci-lint.run/docs/linters/configuration/#varnamelen).
+
+  ```yml
+    varnamelen:
+      ignore-names: # Default: []
+        - tt # using in table-driven tests
+  ```
+
+
+* ❌ `wcl` - removed
+
+  The linter 'wsl' is deprecated (since v2.2.0) due to: new major version. Replaced by wsl_v5.
