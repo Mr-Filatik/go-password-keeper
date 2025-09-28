@@ -226,13 +226,24 @@ linters:
     # unused:
     # usestdlibvars:
     # usetesting:
-    # varnamelen:
+    varnamelen:
+      ignore-names: # Default: []
+        - tt # using in table driven tests
     # wastedassign:
     # whitespace:
     # wrapcheck:
     # wsl: # deprecated, replaced by wsl_v5
     # wsl_v5:
     # zerologlint:
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - dupl
+      - path: _test\.go
+        linters:
+          - funlen
+        text: "^Function 'getTests"
 formatters:
   enable:
     - gci

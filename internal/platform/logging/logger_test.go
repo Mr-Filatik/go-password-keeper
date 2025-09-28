@@ -89,12 +89,12 @@ func TestLogLevel_Limit(t *testing.T) {
 		{
 			name: "fatal level",
 			l:    logging.LevelFatal,
-			want: logging.LevelFatal,
+			want: logging.LevelError,
 		},
 		{
 			name: "unknown level",
 			l:    logging.LogLevel(99),
-			want: logging.LevelFatal,
+			want: logging.LevelError,
 		},
 	}
 	for _, tt := range tests {
@@ -102,7 +102,7 @@ func TestLogLevel_Limit(t *testing.T) {
 			t.Parallel()
 
 			exp := tt.want
-			act := tt.l.Limit()
+			act := tt.l.Validate()
 
 			assert.Equalf(t, exp, act, "LogLevel.Limit() = %v, want %v", act, exp)
 		})

@@ -22,6 +22,21 @@ const (
 
 	// LevelFatal - fatal logging level.
 	LevelFatal
+
+	// DefaultLevel - minimum log limit level.
+	DefaultLevel = LevelError
+)
+
+// LogFormat — log output format.
+type LogFormat string
+
+// Constants - description of the log output type.
+const (
+	// FormatJSON - output logs in JSON format.
+	FormatJSON LogFormat = "JSON"
+
+	// FormatText - output logs in text format.
+	FormatText LogFormat = "TEXT"
 )
 
 // Logger describes the interface for all loggers used in the project.
@@ -29,18 +44,41 @@ const (
 // It is an implementation of the adapter pattern for converting any logger to a common interface.
 type Logger interface {
 	// Debug logs the message and parameters with the debug level.
+	//
+	// Parameters:
+	//   - message: main log message;
+	//   - keysAndValues: additional information as a key-value pair.
 	Debug(message string, keysAndValues ...any)
 
 	// Info logs the message and parameters with the info level.
+	//
+	// Parameters:
+	//   - message: main log message;
+	//   - keysAndValues: additional information as a key-value pair.
 	Info(message string, keysAndValues ...any)
 
 	// Warn logs a message and parameters with the warn level and a possible (non-critical) error.
+	//
+	// Parameters:
+	//   - message: main log message;
+	//   - err: possible error;
+	//   - keysAndValues: additional information as a key-value pair.
 	Warn(message string, err error, keysAndValues ...any)
 
 	// Error logs a message and parameters with the error level and error.
+	//
+	// Parameters:
+	//   - message: main log message;
+	//   - err: error;
+	//   - keysAndValues: additional information as a key-value pair.
 	Error(message string, err error, keysAndValues ...any)
 
 	// Fatal logs a message and parameters with the fatal and critical error levels.
+	//
+	// Parameters:
+	//   - message: main log message;
+	//   - err: critical error;
+	//   - keysAndValues: additional information as a key-value pair.
 	Fatal(message string, err error, keysAndValues ...any)
 
 	// Close releases resources used by the logger.
@@ -69,12 +107,14 @@ func (l LogLevel) String() string {
 	}
 }
 
-// Limit limits the level to the maximum allowed if an invalid value is specified.
-func (l LogLevel) Limit() LogLevel {
+// Validate limits the level to the maximum allowed if an invalid value is specified.
+func (l LogLevel) Validate() LogLevel {
 	switch l {
-	case LevelDebug, LevelInfo, LevelWarn, LevelError, LevelFatal:
+	case LevelDebug, LevelInfo, LevelWarn, LevelError:
 		return l
+	case LevelFatal:
+		return DefaultLevel
 	default:
-		return LevelFatal
+		return DefaultLevel
 	}
 }
