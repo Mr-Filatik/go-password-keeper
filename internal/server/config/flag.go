@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	flagNameAddress string = "a"
+	flagNameAddress string = "address"
 )
 
 // configFlags - a structure containing the main application flags.
