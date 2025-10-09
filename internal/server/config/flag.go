@@ -8,23 +8,23 @@ import (
 )
 
 const (
-	flagNameAddress string = "address"
+	flagNameServerAddress string = "server-address"
 )
 
 // configFlags - a structure containing the main application flags.
 type configFlags struct {
-	address        string
-	addressIsValue bool
+	serverAddress        string
+	serverAddressIsValue bool
 }
 
 // getFlagsConfig gets the config from the specified arguments.
 func getFlagsConfig(fs *flag.FlagSet, args []string) (*configFlags, error) {
 	config := &configFlags{
-		address:        "",
-		addressIsValue: false,
+		serverAddress:        "",
+		serverAddressIsValue: false,
 	}
 
-	argAddress := fs.String(flagNameAddress, "", "HTTP server endpoint")
+	argAddress := fs.String(flagNameServerAddress, "", "HTTP server endpoint")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -32,8 +32,8 @@ func getFlagsConfig(fs *flag.FlagSet, args []string) (*configFlags, error) {
 	}
 
 	if argAddress != nil && *argAddress != "" {
-		config.address = *argAddress
-		config.addressIsValue = true
+		config.serverAddress = *argAddress
+		config.serverAddressIsValue = true
 	}
 
 	return config, nil
@@ -57,7 +57,7 @@ func (c *Config) overrideConfigFromFlags(conf *configFlags) {
 		return
 	}
 
-	if conf.addressIsValue {
-		c.Address = conf.address
+	if conf.serverAddressIsValue {
+		c.Address = conf.serverAddress
 	}
 }
