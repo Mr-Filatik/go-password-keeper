@@ -229,7 +229,7 @@ linters:
     varnamelen:
       ignore-names: # Default: []
         - tt # using in table driven tests
-      ignore-decls:
+      ignore-decls: # Default: []
         - w http.ResponseWriter # using in http handlers
         - r *http.Request # using in http handlers
     # wastedassign:
