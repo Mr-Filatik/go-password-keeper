@@ -12,6 +12,7 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	"github.com/mr-filatik/go-password-keeper/internal/server/config"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http"
 )
 
@@ -69,10 +70,12 @@ func Run() {
 		syscall.SIGQUIT)
 	defer exitFn()
 
+	appConfig := config.Initialize()
+
 	metricsProvider := metrics.CreateProvider("filatik_go_password_keeper", "server")
 
 	httpServerConfig := http.ServerConfig{
-		Address:         ":8080",
+		Address:         appConfig.Address,
 		MetricsProvider: metricsProvider,
 	}
 
