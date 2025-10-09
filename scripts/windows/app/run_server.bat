@@ -57,7 +57,7 @@ if exist "!ENV_FILE_PATH!" (
 )
 
 if defined SERVER_ADDRESS (
-    set "ARGS=!ARGS! -address=!SERVER_ADDRESS!"
+    set "ARGS=!ARGS! -server-address=!SERVER_ADDRESS!"
 )
 
 echo ARGS: !ARGS!
