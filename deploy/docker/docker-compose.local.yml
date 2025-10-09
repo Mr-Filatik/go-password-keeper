@@ -1,0 +1,9 @@
+services:
+  server:
+    environment:
+      - SERVER_ADDRESS=:8080
+    ports:
+      - "${SERVER_HOST_PORT}:8080"
+
+    # env_file:
+    #  - ../env/local.env
