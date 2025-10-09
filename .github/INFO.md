@@ -88,15 +88,16 @@ The following linters are either disabled or have had their settings changed:
 
 * ⚠️ `varnamelen` - settings changed
 
-  Added `tt` to the names of variables used in table-driven tests. Also, `w http.ResponseWriter` and `r *http.Request` used in handlers are described. More details in the [documentation](https://golangci-lint.run/docs/linters/configuration/#varnamelen).
+  Added `tt` to the names of variables used in table-driven tests. Also, `w http.ResponseWriter` and `r *http.Request` used in handlers are described. And an exception for `fs *flag.FlagSet`. More details in the [documentation](https://golangci-lint.run/docs/linters/configuration/#varnamelen).
 
   ```yml
     varnamelen:
       ignore-names: # Default: []
         - tt # using in table-driven tests
       ignore-decls: # Default: []
-        - w http.ResponseWriter # using in http handlers
+        - fs *flag.FlagSet # using in configs
         - r *http.Request # using in http handlers
+        - w http.ResponseWriter # using in http handlers
   ```
 
 * ❌ `wcl` - removed

@@ -230,8 +230,9 @@ linters:
       ignore-names: # Default: []
         - tt # using in table driven tests
       ignore-decls: # Default: []
-        - w http.ResponseWriter # using in http handlers
+        - fs *flag.FlagSet # using in configs
         - r *http.Request # using in http handlers
+        - w http.ResponseWriter # using in http handlers
     # wastedassign:
     # whitespace:
     # wrapcheck:
