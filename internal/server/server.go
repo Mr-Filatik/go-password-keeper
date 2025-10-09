@@ -11,6 +11,7 @@ import (
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http"
 )
 
@@ -39,6 +40,8 @@ type IServer interface {
 }
 
 // Run starts the server application.
+//
+//nolint:funlen // Run() is the main function in which all components are initialized.
 func Run() {
 	logger, loggerErr := logging.NewZapSugarLogger(logging.LevelInfo, os.Stdout, logging.FormatJSON)
 	if loggerErr != nil {
@@ -66,8 +69,11 @@ func Run() {
 		syscall.SIGQUIT)
 	defer exitFn()
 
+	metricsProvider := metrics.CreateProvider("filatik_go_password_keeper", "server")
+
 	httpServerConfig := http.ServerConfig{
-		Address: "localhost:8080",
+		Address:         ":8080",
+		MetricsProvider: metricsProvider,
 	}
 
 	var mainServer IServer = http.NewServer(httpServerConfig, logger)

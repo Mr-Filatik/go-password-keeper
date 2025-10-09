@@ -6,25 +6,29 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
 // Server - describes the structure of an HTTP server.
 type Server struct {
-	router  *chi.Mux
-	server  *http.Server
-	logger  logging.Logger
-	address string
+	router          *chi.Mux
+	server          *http.Server
+	metricsProvider *metrics.Provider
+	logger          logging.Logger
+	address         string
 }
 
 // ServerConfig - HTTP server configuration.
 type ServerConfig struct {
-	Address string // Address
+	Address         string // Address
+	MetricsProvider *metrics.Provider
 }
 
 const (
@@ -41,9 +45,10 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
-		address: conf.Address,
-		logger:  logger,
-		router:  chi.NewRouter(),
+		address:         conf.Address,
+		metricsProvider: conf.MetricsProvider,
+		logger:          logger,
+		router:          chi.NewRouter(),
 		server: &http.Server{
 			Addr:                         conf.Address,
 			BaseContext:                  nil,
@@ -135,8 +140,12 @@ func (s *Server) Close() error {
 func (s *Server) registerRoutes() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
 
+	metrics.RegisterHandler(s.router)
+
 	s.server.Handler = s.router
 }
+
+const tempRandValue = 400
 
 func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 	ok := s.validateRequestMethod(w, r.Method, http.MethodGet)
@@ -144,9 +153,25 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
+
 	s.logger.Info("ping")
 
 	w.WriteHeader(http.StatusOK)
+
+	//nolint:gosec // temp code
+	time.Sleep(time.Duration(rand.Int64N(tempRandValue)) * time.Millisecond)
+
+	s.metricsProvider.HTTP.IncRequestsTotal(metrics.HTTPRequestLabel{
+		Method:     r.Method,
+		Path:       "/ping",
+		StatusCode: http.StatusOK,
+	})
+	s.metricsProvider.HTTP.ObserveRequestDuration(metrics.HTTPRequestLabel{
+		Method:     r.Method,
+		Path:       "/ping",
+		StatusCode: http.StatusOK,
+	}, time.Since(start))
 
 	_, err := w.Write([]byte("pong"))
 	if err != nil {
