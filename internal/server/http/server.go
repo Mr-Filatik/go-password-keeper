@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
-	"golang.org/x/exp/rand"
 )
 
 // Server - describes the structure of an HTTP server.
@@ -159,7 +159,8 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
-	time.Sleep(time.Duration(rand.Intn(tempRandValue)) * time.Millisecond)
+	//nolint:gosec // temp code
+	time.Sleep(time.Duration(rand.Int64N(tempRandValue)) * time.Millisecond)
 
 	s.metricsProvider.HTTP.IncRequestsTotal(metrics.HTTPRequestLabel{
 		Method:     r.Method,
