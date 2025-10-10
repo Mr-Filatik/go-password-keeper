@@ -33,3 +33,6 @@ prod.env
 # Editor/IDE
 .idea/
 .vscode/
+
+# Docker data
+**/data/
