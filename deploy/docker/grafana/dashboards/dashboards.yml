@@ -9,3 +9,11 @@ providers:
     editable: true
     options:
       path: /etc/grafana/provisioning/dashboards/prometheus
+  - name: 'Experiments Dashboards'
+    orgId: 1
+    folder: 'Experiments'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/experiments
