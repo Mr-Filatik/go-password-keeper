@@ -4,6 +4,7 @@ package server
 import (
 	"context"
 	"errors"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -88,6 +89,57 @@ func Run() {
 
 	logger.Info("Application starting is successful")
 
+	repeatEverySecond(func(i int) {
+		var word string
+
+		switch i {
+		case 1:
+			word = "one"
+		case 2:
+			word = "two"
+		case 3:
+			word = "three"
+		case 4:
+			word = "four"
+		case 5:
+			word = "five"
+		default:
+			word = "unknown"
+		}
+
+		metricsProvider.Experiment.IncDistributionTotal(metrics.ExperimentDistributionLabel{
+			ExperimentName: "first-experiment",
+			BranchName:     word,
+			Distributor:    "server",
+		})
+
+		switch i {
+		case 1:
+			word = "one"
+		case 2:
+			word = "one"
+		case 3:
+			word = "two"
+		case 4:
+			word = "two"
+		case 5:
+			word = "three"
+		default:
+			word = "unknown"
+		}
+
+		metricsProvider.Experiment.IncDistributionTotal(metrics.ExperimentDistributionLabel{
+			ExperimentName: "second-experiment",
+			BranchName:     word,
+			Distributor:    "server",
+		})
+
+		metricsProvider.Experiment.IncExecutionTotal(metrics.ExperimentExecutionLabel{
+			ExperimentName: "zero-experiment",
+			BranchName:     word,
+		})
+	})
+
 	// ===== Waiting for the stop signal =====
 	<-exitCtx.Done()
 
@@ -112,4 +164,17 @@ func Run() {
 	}
 
 	logger.Info("Application shutdown is successful")
+}
+
+func repeatEverySecond(fn func(int)) {
+	// инициализация генератора случайных чисел
+	rand.Seed(time.Now().UnixNano())
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		value := rand.Intn(5) + 1 // Intn(5) возвращает 0–4, поэтому +1
+		fn(value)
+	}
 }

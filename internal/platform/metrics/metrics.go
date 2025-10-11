@@ -12,6 +12,8 @@ import (
 type Provider struct {
 	// HTTP - reference to an object for working with HTTP application metrics.
 	HTTP *ProviderHTTP
+
+	Experiment *ProviderExperiment
 }
 
 // CreateProvider creates an instance of a provider for application metrics.
@@ -24,7 +26,8 @@ func CreateProvider(namespace string, appName string) *Provider {
 	}
 
 	provider := &Provider{
-		HTTP: createProviderHTTP(namespace, constLabels),
+		HTTP:       createProviderHTTP(namespace, constLabels),
+		Experiment: createProviderExperiment(namespace, constLabels),
 	}
 
 	return provider
