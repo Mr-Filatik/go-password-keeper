@@ -91,6 +91,7 @@ func Run() {
 
 	repeatEverySecond(func(i int) {
 		var word string
+		var status string
 
 		switch i {
 		case 1:
@@ -107,7 +108,7 @@ func Run() {
 			word = "unknown"
 		}
 
-		metricsProvider.Experiment.IncDistributionTotal(metrics.ExperimentDistributionLabel{
+		metricsProvider.Experiment.IncDistributionsCounter(metrics.ExperimentDistributionLabel{
 			ExperimentName: "first-experiment",
 			BranchName:     word,
 			Distributor:    "server",
@@ -116,27 +117,41 @@ func Run() {
 		switch i {
 		case 1:
 			word = "one"
+			status = "success"
 		case 2:
 			word = "one"
+			status = "failed"
 		case 3:
 			word = "two"
+			status = "success"
 		case 4:
 			word = "two"
+			status = "failed"
 		case 5:
 			word = "three"
+			status = "success"
 		default:
 			word = "unknown"
 		}
 
-		metricsProvider.Experiment.IncDistributionTotal(metrics.ExperimentDistributionLabel{
+		metricsProvider.Experiment.IncDistributionsCounter(metrics.ExperimentDistributionLabel{
 			ExperimentName: "second-experiment",
 			BranchName:     word,
 			Distributor:    "server",
 		})
 
-		metricsProvider.Experiment.IncExecutionTotal(metrics.ExperimentExecutionLabel{
+		metricsProvider.Experiment.IncExecutionsCounter(metrics.ExperimentExecutionLabel{
+			ExperimentName: "second-experiment",
+			BranchName:     word,
+			Executor:       "server",
+			Status:         status,
+		})
+
+		metricsProvider.Experiment.IncExecutionsCounter(metrics.ExperimentExecutionLabel{
 			ExperimentName: "zero-experiment",
 			BranchName:     word,
+			Executor:       "server",
+			Status:         status,
 		})
 	})
 

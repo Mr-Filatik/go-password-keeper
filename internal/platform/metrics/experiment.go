@@ -5,82 +5,98 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type ProviderExperiment struct {
-	distributionsTotal prometheus.CounterVec
-	executionTotal     prometheus.CounterVec
+// ExperimentMetrics provides a type for working with AB experiment metrics.
+type ExperimentMetrics struct {
+	BaseMetrics
+
+	distributionsCounter *prometheus.CounterVec
+	executionsCounter    *prometheus.CounterVec
 }
 
-const subsystemExperiment = "experiment"
+// NewExperimentMetrics creates a new ExperimentMetrics instance.
+//
+// Parameters:
+// - base BaseMetrics: a basic metric type that contains common data.
+func NewExperimentMetrics(base BaseMetrics) *ExperimentMetrics {
+	subsystemName := "experiment"
 
-func createProviderExperiment(namespace string, constLabels prometheus.Labels) *ProviderExperiment {
-	provider := &ProviderExperiment{
-		distributionsTotal: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				ConstLabels: constLabels,
-				Namespace:   namespace,
-				Subsystem:   subsystemExperiment,
-				Name:        "distributions_total",
-				Help:        "Total number of distributions.",
-			},
-			ExperimentDistributionLabelNames(),
-		),
-		executionTotal: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				ConstLabels: constLabels,
-				Namespace:   namespace,
-				Subsystem:   subsystemExperiment,
-				Name:        "executions_total",
-				Help:        "Total number of executions.",
-			},
-			ExperimentExecutionLabelNames(),
-		),
+	distributionsCounter := base.CreateCounter(CounterOpt{
+		CommonOpt: CommonOpt{
+			Subsystem:  subsystemName,
+			Name:       "distributions_total",
+			Help:       "Total number of experiment distributions",
+			LabelNames: []string{"experiment_name", "branch_name", "distributor"},
+		},
+	})
+
+	executionsCounter := base.CreateCounter(CounterOpt{
+		CommonOpt: CommonOpt{
+			Subsystem:  subsystemName,
+			Name:       "executions_total",
+			Help:       "Total number of experiment executions",
+			LabelNames: []string{"experiment_name", "branch_name", "executor", "status"},
+		},
+	})
+
+	return &ExperimentMetrics{
+		BaseMetrics:          base,
+		distributionsCounter: distributionsCounter,
+		executionsCounter:    executionsCounter,
 	}
-
-	prometheus.MustRegister(
-		provider.distributionsTotal,
-		provider.executionTotal,
-	)
-
-	return provider
 }
 
+// ExperimentDistributionLabel describes the data required to record the metric.
 type ExperimentDistributionLabel struct {
+	// ExperimentName - experiment name.
 	ExperimentName string
 
+	// BranchName - experiment branch name.
 	BranchName string
 
+	// Distributor - distributor.
 	Distributor string
 }
 
-func ExperimentDistributionLabelNames() []string {
-	return []string{"experiment_name", "branch_name", "distributor"}
-}
-
-type ExperimentExecutionLabel struct {
-	ExperimentName string
-
-	BranchName string
-}
-
-func ExperimentExecutionLabelNames() []string {
-	return []string{"experiment_name", "branch_name"}
-}
-
-func (p *ProviderExperiment) IncDistributionTotal(labels ExperimentDistributionLabel) {
+// IncDistributionsCounter increments the counter by one, specifying the labels.
+//
+// Parameters:
+//   - labels ExperimentDistributionLabel: labels.
+func (p *ExperimentMetrics) IncDistributionsCounter(labels ExperimentDistributionLabel) {
 	lbls := prometheus.Labels{
 		"experiment_name": labels.ExperimentName,
 		"branch_name":     labels.BranchName,
 		"distributor":     labels.Distributor,
 	}
 
-	p.distributionsTotal.With(lbls).Inc()
+	p.distributionsCounter.With(lbls).Inc()
 }
 
-func (p *ProviderExperiment) IncExecutionTotal(labels ExperimentExecutionLabel) {
+// ExperimentExecutionLabel describes the data required to record the metric.
+type ExperimentExecutionLabel struct {
+	// ExperimentName - experiment name.
+	ExperimentName string
+
+	// BranchName - experiment branch name.
+	BranchName string
+
+	// Executor - executor.
+	Executor string
+
+	// Status - status (success or failed).
+	Status string
+}
+
+// IncExecutionsCounter increments the counter by one, specifying the labels.
+//
+// Parameters:
+//   - labels ExperimentExecutionLabel: labels.
+func (p *ExperimentMetrics) IncExecutionsCounter(labels ExperimentExecutionLabel) {
 	lbls := prometheus.Labels{
 		"experiment_name": labels.ExperimentName,
 		"branch_name":     labels.BranchName,
+		"executor":        labels.Executor,
+		"status":          labels.Status,
 	}
 
-	p.executionTotal.With(lbls).Inc()
+	p.executionsCounter.With(lbls).Inc()
 }

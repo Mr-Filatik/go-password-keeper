@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 0,
+  "id": 4,
   "links": [],
   "panels": [
     {
@@ -439,7 +439,8 @@
               "viz": false
             }
           },
-          "mappings": []
+          "mappings": [],
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -828,7 +829,7 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -922,7 +923,7 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -981,5 +982,5 @@
   "timezone": "browser",
   "title": "Experiments",
   "uid": "adwczlp",
-  "version": 78
+  "version": 1
 }
