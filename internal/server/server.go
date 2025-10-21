@@ -4,7 +4,6 @@ package server
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -89,72 +88,6 @@ func Run() {
 
 	logger.Info("Application starting is successful")
 
-	repeatEverySecond(func(i int) {
-		var word string
-		var status string
-
-		switch i {
-		case 1:
-			word = "one"
-		case 2:
-			word = "two"
-		case 3:
-			word = "three"
-		case 4:
-			word = "four"
-		case 5:
-			word = "five"
-		default:
-			word = "unknown"
-		}
-
-		metricsProvider.Experiment.IncDistributionsCounter(metrics.ExperimentDistributionLabel{
-			ExperimentName: "first-experiment",
-			BranchName:     word,
-			Distributor:    "server",
-		})
-
-		switch i {
-		case 1:
-			word = "one"
-			status = "success"
-		case 2:
-			word = "one"
-			status = "failed"
-		case 3:
-			word = "two"
-			status = "success"
-		case 4:
-			word = "two"
-			status = "failed"
-		case 5:
-			word = "three"
-			status = "success"
-		default:
-			word = "unknown"
-		}
-
-		metricsProvider.Experiment.IncDistributionsCounter(metrics.ExperimentDistributionLabel{
-			ExperimentName: "second-experiment",
-			BranchName:     word,
-			Distributor:    "server",
-		})
-
-		metricsProvider.Experiment.IncExecutionsCounter(metrics.ExperimentExecutionLabel{
-			ExperimentName: "second-experiment",
-			BranchName:     word,
-			Executor:       "server",
-			Status:         status,
-		})
-
-		metricsProvider.Experiment.IncExecutionsCounter(metrics.ExperimentExecutionLabel{
-			ExperimentName: "zero-experiment",
-			BranchName:     word,
-			Executor:       "server",
-			Status:         status,
-		})
-	})
-
 	// ===== Waiting for the stop signal =====
 	<-exitCtx.Done()
 
@@ -179,17 +112,4 @@ func Run() {
 	}
 
 	logger.Info("Application shutdown is successful")
-}
-
-func repeatEverySecond(fn func(int)) {
-	// инициализация генератора случайных чисел
-	rand.Seed(time.Now().UnixNano())
-
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		value := rand.Intn(5) + 1 // Intn(5) возвращает 0–4, поэтому +1
-		fn(value)
-	}
 }
