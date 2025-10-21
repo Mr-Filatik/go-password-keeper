@@ -1,0 +1,68 @@
+{
+  "id": null,
+  "uid": "simple-prom",
+  "title": "Simple Prometheus Dashboard",
+  "tags": ["prometheus", "example"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "5s",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "HTTP Requests Total",
+      "id": 1,
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m]))",
+          "legendFormat": "req/s",
+          "refId": "A"
+        }
+      ],
+      "lines": true
+    },
+    {
+      "type": "graph",
+      "title": "Average Request Duration",
+      "id": 2,
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_sum[1m])) / sum(rate(http_request_duration_seconds_count[1m]))",
+          "legendFormat": "avg duration (s)",
+          "refId": "A"
+        }
+      ],
+      "lines": true
+    },
+    {
+      "type": "stat",
+      "title": "Current Goroutines",
+      "id": 3,
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 5 },
+      "targets": [
+        {
+          "expr": "go_goroutines",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": ["last"],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value"
+      }
+    }
+  ],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  }
+}

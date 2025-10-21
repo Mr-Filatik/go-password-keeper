@@ -103,3 +103,17 @@ The following linters are either disabled or have had their settings changed:
 * ❌ `wcl` - removed
 
   The linter 'wsl' is deprecated (since v2.2.0) due to: new major version. Replaced by wsl_v5.
+
+Additionally, exclusions have been added for generated files:
+
+* ⚠️ Swagger files
+
+  Some linters have been added to the exclusions. More details in the [documentation](https://golangci-lint.run/docs/configuration/file/#linters-configuration).
+
+  ```yml
+      - path: ^docs/swagger/
+        linters:
+          - gochecknoinits
+          - gochecknoglobals
+          - godot
+  ```

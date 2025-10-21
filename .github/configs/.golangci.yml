@@ -248,6 +248,11 @@ linters:
         linters:
           - funlen
         text: "^Function 'getTests"
+      - path: ^docs/swagger/
+        linters:
+          - gochecknoinits
+          - gochecknoglobals
+          - godot
 formatters:
   enable:
     - gci

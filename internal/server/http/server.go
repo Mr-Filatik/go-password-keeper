@@ -12,8 +12,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	_ "github.com/mr-filatik/go-password-keeper/docs/swagger/server" // Swagger docs registration in HTTP server.
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // Server - describes the structure of an HTTP server.
@@ -142,6 +144,8 @@ func (s *Server) registerRoutes() {
 
 	metrics.RegisterHandler(s.router)
 
+	s.router.Handle("/swagger/*", httpSwagger.WrapHandler)
+
 	s.server.Handler = s.router
 }
 
@@ -162,12 +166,12 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 	//nolint:gosec // temp code
 	time.Sleep(time.Duration(rand.Int64N(tempRandValue)) * time.Millisecond)
 
-	s.metricsProvider.HTTP.IncRequestsTotal(metrics.HTTPRequestLabel{
+	s.metricsProvider.HTTP.IncRequestsCounter(metrics.HTTPRequestLabel{
 		Method:     r.Method,
 		Path:       "/ping",
 		StatusCode: http.StatusOK,
 	})
-	s.metricsProvider.HTTP.ObserveRequestDuration(metrics.HTTPRequestLabel{
+	s.metricsProvider.HTTP.ObserveRequestDurationHistogram(metrics.HTTPRequestLabel{
 		Method:     r.Method,
 		Path:       "/ping",
 		StatusCode: http.StatusOK,

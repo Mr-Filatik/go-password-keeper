@@ -1,0 +1,41 @@
+name: go-password-keeper
+
+services:
+  server:
+    container_name: server
+    image: filatik/go-password-keeper/server:dev
+    build:
+      context: ../.. # root with sources (go.mod, cmd/)
+      dockerfile: deploy/docker/Dockerfile.server
+    restart: unless-stopped
+    environment:
+      - SERVER_ADDRESS=:8080
+    ports:
+      - "${SERVER_HOST_PORT}:8080"
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
+    container_name: prometheus
+    ports:
+      - ${PROMETHEUS_PORT_EXTERNAL}:9090
+    command:
+      - '--config.file=/usr/share/prometheus/prometheus.yml'
+    volumes:
+      - ./prometheus:/usr/share/prometheus/
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION:-latest}
+    hostname: grafana
+    container_name: grafana
+    ports:
+      - ${GRAFANA_PORT_EXTERNAL}:3000
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
+    
