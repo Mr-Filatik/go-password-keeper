@@ -16,7 +16,7 @@ type ExperimentMetrics struct {
 // NewExperimentMetrics creates a new ExperimentMetrics instance.
 //
 // Parameters:
-// - base BaseMetrics: a basic metric type that contains common data.
+//   - base BaseMetrics: a basic metric type that contains common data.
 func NewExperimentMetrics(base BaseMetrics) *ExperimentMetrics {
 	subsystemName := "experiment"
 

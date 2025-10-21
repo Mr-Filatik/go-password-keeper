@@ -20,8 +20,8 @@ type BaseMetrics struct {
 // You can set your own using the SetRegisterer(reg prometheus.Registerer) function.
 //
 // Parameters:
-// - namespace string: namespace for metrics;
-// - constLabels map[string]string: global labels for metrics.
+//   - namespace string: namespace for metrics;
+//   - constLabels map[string]string: global labels for metrics.
 func NewBaseMetrics(namespace string, constLabels map[string]string) *BaseMetrics {
 	return &BaseMetrics{
 		namespace:   namespace,
@@ -33,7 +33,7 @@ func NewBaseMetrics(namespace string, constLabels map[string]string) *BaseMetric
 // SetRegisterer allows you to install a custom registrar.
 //
 // Parameters:
-// - reg prometheus.Registerer: the registrar for the metrics collection (default is prometheus.DefaultRegisterer).
+//   - reg prometheus.Registerer: the registrar for the metrics collection (default is prometheus.DefaultRegisterer).
 func (b *BaseMetrics) SetRegisterer(reg prometheus.Registerer) *BaseMetrics {
 	if reg == nil {
 		reg = prometheus.DefaultRegisterer
@@ -75,7 +75,7 @@ type CounterOpt struct {
 // CreateCounter creates a new metrics counter.
 //
 // Parameters:
-// - opt CounterOpt: parameters for creating a counter.
+//   - opt CounterOpt: parameters for creating a counter.
 func (b *BaseMetrics) CreateCounter(opt CounterOpt) *prometheus.CounterVec {
 	counter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -110,7 +110,7 @@ type HistogramOpt struct {
 // CreateHistogram creates a new metrics histogram.
 //
 // Parameters:
-// - opt HistogramOpt: parameters for creating a histogram.
+//   - opt HistogramOpt: parameters for creating a histogram.
 func (b *BaseMetrics) CreateHistogram(opt HistogramOpt) *prometheus.HistogramVec {
 	if opt.Buckets == nil {
 		opt.Buckets = prometheus.DefBuckets

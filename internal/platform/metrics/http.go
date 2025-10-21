@@ -8,49 +8,48 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// ProviderHTTP is an object for working with HTTP application metrics.
-type ProviderHTTP struct {
-	requestsTotal   prometheus.CounterVec
-	requestDuration prometheus.HistogramVec
+// HTTPMetrics defines the type of work with HTTP metrics of the application.
+type HTTPMetrics struct {
+	BaseMetrics
+
+	requestsCounter          *prometheus.CounterVec
+	requestDurationHistogram *prometheus.HistogramVec
 }
 
-const subsystemHTTP = "http"
+// NewHTTPMetrics creates a new HTTPMetrics instance.
+//
+// Parameters:
+//   - base BaseMetrics: a basic metric type that contains common data.
+func NewHTTPMetrics(base BaseMetrics) *HTTPMetrics {
+	subsystemName := "http"
 
-func createProviderHTTP(namespace string, constLabels prometheus.Labels) *ProviderHTTP {
-	provider := &ProviderHTTP{
-		requestsTotal: *prometheus.NewCounterVec(
-			prometheus.CounterOpts{
-				ConstLabels: constLabels,
-				Namespace:   namespace,
-				Subsystem:   subsystemHTTP,
-				Name:        "requests_total",
-				Help:        "Total number of HTTP requests.",
-			},
-			HTTPRequestLabelNames(),
-		),
-		requestDuration: *prometheus.NewHistogramVec(
-			//nolint:exhaustruct // Native Histogram is not used
-			prometheus.HistogramOpts{
-				ConstLabels: constLabels,
-				Namespace:   namespace,
-				Subsystem:   subsystemHTTP,
-				Name:        "request_duration_seconds",
-				Help:        "Request duration in seconds.",
-				Buckets:     prometheus.DefBuckets, // or []float64{0.05,0.1,0.2,0.3,0.5,0.75,1,2}
-			},
-			HTTPRequestLabelNames(),
-		),
+	requestsCounter := base.CreateCounter(CounterOpt{
+		CommonOpt: CommonOpt{
+			Subsystem:  subsystemName,
+			Name:       "requests_total",
+			Help:       "Total number of HTTP requests.",
+			LabelNames: []string{"method", "path", "status_code"},
+		},
+	})
+
+	requestDurationHistogram := base.CreateHistogram(HistogramOpt{
+		CommonOpt: CommonOpt{
+			Subsystem:  subsystemName,
+			Name:       "request_duration_seconds",
+			Help:       "Request duration in seconds.",
+			LabelNames: []string{"method", "path", "status_code"},
+		},
+		Buckets: nil,
+	})
+
+	return &HTTPMetrics{
+		BaseMetrics:              base,
+		requestsCounter:          requestsCounter,
+		requestDurationHistogram: requestDurationHistogram,
 	}
-
-	prometheus.MustRegister(
-		provider.requestsTotal,
-		provider.requestDuration,
-	)
-
-	return provider
 }
 
-// HTTPRequestLabel describes common labels for all requests.
+// HTTPRequestLabel describes the data required to record the metric.
 type HTTPRequestLabel struct {
 	// Method - HTTP request method.
 	Method string
@@ -66,24 +65,26 @@ type HTTPRequestLabel struct {
 	StatusCode int64
 }
 
-// HTTPRequestLabelNames returns common label names for all requests.
-func HTTPRequestLabelNames() []string {
-	return []string{"method", "path", "status_code"}
-}
-
-// IncRequestsTotal increments the RequestsTotal counter by one.
-func (p *ProviderHTTP) IncRequestsTotal(labels HTTPRequestLabel) {
+// IncRequestsCounter increments the counter by one, specifying the labels.
+//
+// Parameters:
+//   - labels HTTPRequestLabel: labels.
+func (p *HTTPMetrics) IncRequestsCounter(labels HTTPRequestLabel) {
 	lbls := prometheus.Labels{
 		"method":      labels.Method,
 		"path":        labels.Path,
 		"status_code": strconv.FormatInt(labels.StatusCode, 10),
 	}
 
-	p.requestsTotal.With(lbls).Inc()
+	p.requestsCounter.With(lbls).Inc()
 }
 
-// ObserveRequestDuration records the execution time for the RequestDuration histogram.
-func (p *ProviderHTTP) ObserveRequestDuration(
+// ObserveRequestDurationHistogram records the execution time for the RequestDuration histogram.
+//
+// Parameters:
+//   - labels HTTPRequestLabel: labels;
+//   - duration time.Duration: request duration.
+func (p *HTTPMetrics) ObserveRequestDurationHistogram(
 	labels HTTPRequestLabel,
 	duration time.Duration,
 ) {
@@ -93,5 +94,5 @@ func (p *ProviderHTTP) ObserveRequestDuration(
 		"status_code": strconv.FormatInt(labels.StatusCode, 10),
 	}
 
-	p.requestDuration.With(lbls).Observe(duration.Seconds())
+	p.requestDurationHistogram.With(lbls).Observe(duration.Seconds())
 }

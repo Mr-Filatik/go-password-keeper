@@ -10,16 +10,18 @@ import (
 
 // Provider represents the main entity for working with application metrics.
 type Provider struct {
-	// HTTP - reference to an object for working with HTTP application metrics.
-	HTTP *ProviderHTTP
+	// HTTP - a reference to an object for working with HTTP application metrics.
+	HTTP *HTTPMetrics
 
+	// Experiment - a reference to an object for working with experiment metrics
 	Experiment *ExperimentMetrics
 }
 
 // CreateProvider creates an instance of a provider for application metrics.
 //
 // Parameters:
-//   - namespace: common prefix for all metrics.
+//   - namespace: common prefix for all metrics;
+//   - appName: application name.
 func CreateProvider(namespace string, appName string) *Provider {
 	constLabels := prometheus.Labels{
 		"app": appName,
@@ -28,7 +30,7 @@ func CreateProvider(namespace string, appName string) *Provider {
 	baseMetrics := *NewBaseMetrics(namespace, constLabels)
 
 	provider := &Provider{
-		HTTP:       createProviderHTTP(namespace, constLabels),
+		HTTP:       NewHTTPMetrics(baseMetrics),
 		Experiment: NewExperimentMetrics(baseMetrics),
 	}
 
