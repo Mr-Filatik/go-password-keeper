@@ -1,0 +1,26 @@
+info:
+  contact: {}
+paths:
+  /ping:
+    get:
+      description: Возвращает "pong" для проверки доступности сервиса.
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: pong
+          schema:
+            type: string
+        "405":
+          description: method not allowed"   // если validateRequestMethod отдаёт
+            405
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Пинг сервиса
+      tags:
+      - health
+swagger: "2.0"
