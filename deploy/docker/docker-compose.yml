@@ -22,6 +22,7 @@ services:
       - '--config.file=/usr/share/prometheus/prometheus.yml'
     volumes:
       - ./prometheus:/usr/share/prometheus/
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION:-latest}
@@ -36,4 +37,5 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    restart: unless-stopped
     
