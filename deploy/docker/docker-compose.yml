@@ -4,6 +4,8 @@ services:
   server:
     container_name: server
     image: filatik/go-password-keeper/server:dev
+    labels: 
+      co.elastic.logs/enabled: "true"
     build:
       context: ../.. # root with sources (go.mod, cmd/)
       dockerfile: deploy/docker/Dockerfile.server
@@ -63,4 +65,65 @@ services:
     depends_on:
       - redis
 
-    
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"     # REST API
+    volumes:
+      - ./data/elk/elasticsearch:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200 >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.2
+    container_name: logstash
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5044:5044"     # Beats input (Filebeat/Logstash-Beats)
+      - "9600:9600"     # Logstash monitoring API
+    volumes:
+      - ./elk/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./data/elk/logstash:/usr/share/logstash/data
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9600/_node >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"     # Kibana UI
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5601/api/status >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 20
+
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:8.12.2
+    container_name: filebeat
+    user: root
+    depends_on:
+      - logstash
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./elk/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+    command: ["-e", "--strict.perms=false"]

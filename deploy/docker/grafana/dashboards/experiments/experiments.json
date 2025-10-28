@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 4,
+  "id": 6,
   "links": [],
   "panels": [
     {
@@ -29,7 +29,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 4,
+      "id": 2,
       "panels": [],
       "title": "Experiments Info",
       "type": "row"
@@ -39,6 +39,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Names of experiments active in the selected range and their activity type.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -52,32 +53,9 @@
             "footer": {
               "reducers": []
             },
-            "inspect": false,
-            "wrapText": false
+            "inspect": false
           },
-          "mappings": [
-            {
-              "options": {
-                "1": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "1"
-                }
-              },
-              "type": "value"
-            },
-            {
-              "options": {
-                "match": "empty",
-                "result": {
-                  "color": "red",
-                  "index": 1,
-                  "text": "0"
-                }
-              },
-              "type": "special"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -87,59 +65,12 @@
               },
               {
                 "color": "red",
-                "value": 0
+                "value": 80
               }
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Disribution Is Active"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "applyToRow": false,
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              },
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Execution Is Active"
-            },
-            "properties": [
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "mode": "basic",
-                  "type": "color-background"
-                }
-              },
-              {
-                "id": "custom.width",
-                "value": 100
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Experiment Name"
-            },
-            "properties": []
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -147,46 +78,62 @@
         "x": 0,
         "y": 1
       },
-      "id": 6,
+      "id": 1,
       "options": {
         "cellHeight": "sm",
-        "frameIndex": 3,
-        "showHeader": true,
-        "sortBy": [
-          {
-            "desc": true,
-            "displayName": "Disribution Is Active"
-          }
-        ]
+        "showHeader": true
       },
       "pluginVersion": "12.2.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "label_replace(\r\n  sum by (experiment_name) ( \r\n    increase(\r\n      filatik_go_password_keeper_experiment_distributions_total[$__range]) ) > bool 0, \r\n      \"is_distribution\",\"1\",\"\",\"\" ) \r\nor \r\nlabel_replace( \r\n  sum by (experiment_name) ( \r\n    increase(\r\n      filatik_go_password_keeper_experiment_executions_total[$__range]) ) > bool 0, \r\n      \"is_execution\",\"1\",\"\",\"\"\r\n)",
+          "expr": "sum by (experiment_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_distributions_total[$__range]\r\n  )\r\n) > 0",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
           "range": false,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (experiment_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total[$__range]\r\n  )\r\n) > 0",
+          "format": "table",
+          "hide": false,
+          "instant": true,
+          "legendFormat": "__auto",
+          "range": false,
+          "refId": "B"
         }
       ],
-      "title": "Current Experiments",
+      "title": "Active Experiments",
       "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": true,
-              "Value": true
+              "Time": true
             },
             "includeByName": {},
             "indexByName": {},
             "renameByName": {
-              "experiment_name": "Experiment Name",
-              "is_distribution": "Disribution Is Active",
-              "is_execution": "Execution Is Active"
+              "Time": "",
+              "Value #A": "Distributions",
+              "Value #B": "Executions",
+              "experiment_name": "Experiment Name"
             }
           }
         }
@@ -198,6 +145,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Distribution activity for all experiments.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -226,7 +174,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "showValues": false,
             "spanNulls": false,
             "stacking": {
@@ -238,7 +186,6 @@
             }
           },
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -261,7 +208,7 @@
         "x": 8,
         "y": 1
       },
-      "id": 12,
+      "id": 3,
       "options": {
         "legend": {
           "calcs": [],
@@ -271,7 +218,7 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "multi",
+          "mode": "single",
           "sort": "none"
         }
       },
@@ -279,13 +226,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "label_replace(\r\n  sum (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_distributions_total{\r\n        experiment_name=~\"$experiment_name\"\r\n      }[$__rate_interval]\r\n    )\r\n  ),\r\n  \"experiment_name\", \"TOTAL\", \"\", \"\"\r\n)\r\nor\r\nsum by (experiment_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_distributions_total{\r\n      experiment_name=~\"$experiment_name\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
+          "expr": "sum by (experiment_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_distributions_total{\r\n      experiment_name=~\"$experiment_name\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Experiments Distribution (Number By Interval)",
+      "title": "Distribution Activity",
       "type": "timeseries"
     },
     {
@@ -293,6 +240,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Execution activity for all experiments.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -321,7 +269,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "showValues": false,
             "spanNulls": false,
             "stacking": {
@@ -333,7 +281,6 @@
             }
           },
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -348,32 +295,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "__systemRef": "hideSeriesFrom",
-            "matcher": {
-              "id": "byNames",
-              "options": {
-                "mode": "exclude",
-                "names": [
-                  "zero-experiment"
-                ],
-                "prefix": "All except:",
-                "readOnly": true
-              }
-            },
-            "properties": [
-              {
-                "id": "custom.hideFrom",
-                "value": {
-                  "legend": false,
-                  "tooltip": true,
-                  "viz": true
-                }
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 8,
@@ -381,7 +303,7 @@
         "x": 16,
         "y": 1
       },
-      "id": 13,
+      "id": 4,
       "options": {
         "legend": {
           "calcs": [],
@@ -391,7 +313,7 @@
         },
         "tooltip": {
           "hideZeros": false,
-          "mode": "multi",
+          "mode": "single",
           "sort": "none"
         }
       },
@@ -399,13 +321,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "label_replace(\r\n  sum (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_executions_total{\r\n        experiment_name=~\"$experiment_name\"\r\n      }[$__rate_interval]\r\n    )\r\n  ),\r\n  \"experiment_name\", \"TOTAL\", \"\", \"\"\r\n)\r\nor\r\nsum by (experiment_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
+          "expr": "sum by (experiment_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Experiments Execution (Number By Interval)",
+      "title": "Execution Activity",
       "type": "timeseries"
     },
     {
@@ -416,7 +338,7 @@
         "x": 0,
         "y": 9
       },
-      "id": 3,
+      "id": 5,
       "panels": [],
       "repeat": "experiment_name",
       "title": "Experiment: $experiment_name",
@@ -427,6 +349,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Distribution Percentage\n\nThe overall distribution percentage of the experiment within the selected range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -450,14 +373,15 @@
         "x": 0,
         "y": 10
       },
-      "id": 5,
+      "id": 6,
       "options": {
+        "displayLabels": [],
         "legend": {
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
           "values": [
-            "percent"
+            "value"
           ]
         },
         "pieType": "donut",
@@ -471,7 +395,7 @@
         "sort": "desc",
         "tooltip": {
           "hideZeros": false,
-          "mode": "single",
+          "mode": "multi",
           "sort": "none"
         }
       },
@@ -485,7 +409,7 @@
           "refId": "A"
         }
       ],
-      "title": "Distribution (Percentage By Range)",
+      "title": "Distribution Percentage",
       "type": "piechart"
     },
     {
@@ -493,6 +417,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "The experiment's distribution percentage, broken down by time intervals.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -521,7 +446,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "showValues": false,
             "spanNulls": false,
             "stacking": {
@@ -533,7 +458,6 @@
             }
           },
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -575,13 +499,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "clamp_max(\r\n  100 *\r\n  sum by (branch_name) (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_distributions_total{\r\n        experiment_name=~\"$experiment_name\"\r\n      }[$__rate_interval]\r\n    )\r\n  )\r\n  /\r\n  scalar(\r\n    sum(\r\n      increase(\r\n        filatik_go_password_keeper_experiment_distributions_total{\r\n          experiment_name=~\"$experiment_name\"\r\n        }[$__rate_interval]\r\n      )\r\n    )\r\n  ),\r\n  100\r\n)",
+          "expr": "clamp_max(\r\n  100 *\r\n  sum by (branch_name) (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_distributions_total{\r\n        experiment_name=~\"$experiment_name\"\r\n      }[$__range]\r\n    )\r\n  )\r\n  /\r\n  scalar(\r\n    sum(\r\n      increase(\r\n        filatik_go_password_keeper_experiment_distributions_total{\r\n          experiment_name=~\"$experiment_name\"\r\n        }[$__range]\r\n      )\r\n    )\r\n  ),\r\n  100\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Distribution (Percentage By Interval)",
+      "title": "Distribution Percentage",
       "type": "timeseries"
     },
     {
@@ -589,6 +513,7 @@
         "type": "prometheus",
         "uid": "PBFA97CFB590B2093"
       },
+      "description": "Distribution activity for the current experiment.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -617,7 +542,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "showValues": false,
             "spanNulls": false,
             "stacking": {
@@ -629,7 +554,6 @@
             }
           },
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -652,7 +576,7 @@
         "x": 16,
         "y": 10
       },
-      "id": 10,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -676,7 +600,7 @@
           "refId": "A"
         }
       ],
-      "title": "Distribution (Number By Interval)",
+      "title": "Distribution Activity",
       "type": "timeseries"
     },
     {
@@ -688,6 +612,16 @@
         "defaults": {
           "color": {
             "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
           },
           "mappings": [],
           "thresholds": {
@@ -715,41 +649,58 @@
       },
       "id": 9,
       "options": {
-        "displayMode": "gradient",
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "auto",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
+        "cellHeight": "sm",
+        "showHeader": true
       },
       "pluginVersion": "12.2.0",
       "targets": [
         {
           "editorMode": "code",
-          "expr": "clamp_max(\r\n  100 *\r\n  sum by (branch_name) (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_executions_total{\r\n        experiment_name=~\"$experiment_name\"\r\n      }[$__rate_interval]\r\n    )\r\n  )\r\n  /\r\n  scalar(\r\n    sum(\r\n      increase(\r\n        filatik_go_password_keeper_experiment_executions_total{\r\n          experiment_name=~\"$experiment_name\"\r\n        }[$__rate_interval]\r\n      )\r\n    )\r\n  ),\r\n  100\r\n)",
+          "exemplar": false,
+          "expr": "100 *\r\nsum by (branch_name, executor) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\",\r\n      status!~\"success\"\r\n    }[$__range]\r\n  )\r\n)\r\n/\r\nsum by (branch_name, executor) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\"\r\n    }[$__range]\r\n  )\r\n)",
+          "format": "table",
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A"
         }
       ],
-      "title": "Execution (Repcentage By Range)",
-      "type": "bargauge"
+      "title": "Execution Error Percentage",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Time": 0,
+              "Value": 3,
+              "branch_name": 2,
+              "executor": 1
+            },
+            "renameByName": {
+              "Value": "Percentage",
+              "branch_name": "Branch Name",
+              "executor": "Executor"
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "fields": {},
+            "sort": [
+              {
+                "desc": true,
+                "field": "Percentage"
+              }
+            ]
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "datasource": {
@@ -784,7 +735,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "showValues": false,
             "spanNulls": false,
             "stacking": {
@@ -819,7 +770,7 @@
         "x": 8,
         "y": 18
       },
-      "id": 8,
+      "id": 10,
       "options": {
         "legend": {
           "calcs": [],
@@ -837,13 +788,14 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "clamp_max(\r\n  100 *\r\n  sum by (branch_name) (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_executions_total{\r\n        experiment_name=~\"$experiment_name\"\r\n      }[$__rate_interval]\r\n    )\r\n  )\r\n  /\r\n  scalar(\r\n    sum(\r\n      increase(\r\n        filatik_go_password_keeper_experiment_executions_total{\r\n          experiment_name=~\"$experiment_name\"\r\n        }[$__rate_interval]\r\n      )\r\n    )\r\n  ),\r\n  100\r\n)",
+          "expr": "100 *\r\nsum by (branch_name, executor) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\",\r\n      executor=~\"$executor\",\r\n      status!~\"success\"\r\n    }[$__rate_interval]\r\n  )\r\n)\r\n/\r\nsum by (branch_name, executor) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\",\r\n      executor=~\"$executor\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
+          "format": "time_series",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Execution (Percentage By Interval)",
+      "title": "Execution Error Percentage",
       "type": "timeseries"
     },
     {
@@ -879,7 +831,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "showValues": false,
             "spanNulls": false,
             "stacking": {
@@ -931,13 +883,13 @@
       "targets": [
         {
           "editorMode": "code",
-          "expr": "sum by (branch_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
+          "expr": "label_replace(\r\n  sum (\r\n    increase(\r\n      filatik_go_password_keeper_experiment_executions_total{\r\n        experiment_name=~\"$experiment_name\",\r\n        executor=~\"$executor\"\r\n      }[$__rate_interval]\r\n    )\r\n  ),\r\n  \"branch_name\", \"TOTAL\", \"\", \"\"\r\n)\r\nor\r\nsum by(branch_name) (\r\n  increase(\r\n    filatik_go_password_keeper_experiment_executions_total{\r\n      experiment_name=~\"$experiment_name\",\r\n      executor=~\"$executor\"\r\n    }[$__rate_interval]\r\n  )\r\n)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Execution (Number By Interval)",
+      "title": "Execution Activity",
       "type": "timeseries"
     }
   ],
@@ -947,17 +899,12 @@
   "templating": {
     "list": [
       {
-        "allowCustomValue": true,
         "current": {
           "text": "All",
           "value": "$__all"
         },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "PBFA97CFB590B2093"
-        },
         "definition": "query_result({__name__=~\"filatik_go_password_keeper_experiment_.*\"})",
-        "description": "",
+        "description": "The name of the experiment active in the selected range.",
         "includeAll": true,
         "label": "Experiment Name",
         "name": "experiment_name",
@@ -968,8 +915,46 @@
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
-        "regex": "/experiment_name=\"([^\"]+)\"/",
+        "regex": "/experiment_name=\\\"([^\\\"]+)\\\"/",
         "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "label_values(filatik_go_password_keeper_experiment_distributions_total,distributor)",
+        "includeAll": true,
+        "label": "Distributor",
+        "name": "distributor",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(filatik_go_password_keeper_experiment_distributions_total,distributor)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "definition": "label_values(filatik_go_password_keeper_experiment_executions_total,executor)",
+        "includeAll": true,
+        "label": "Executor",
+        "name": "executor",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(filatik_go_password_keeper_experiment_executions_total,executor)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
         "type": "query"
       }
     ]
@@ -980,7 +965,7 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Experiments",
-  "uid": "adwczlp",
-  "version": 1
+  "title": "Experiments Info",
+  "uid": "adwx5vq",
+  "version": 34
 }
