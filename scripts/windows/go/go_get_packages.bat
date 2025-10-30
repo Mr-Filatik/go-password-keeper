@@ -8,7 +8,7 @@ pushd ..\..\..\ || (
   exit /b 1
 )
 
-set "PACKAGES_ENV_FILE=scripts\env\packages.env"
+set "PACKAGES_ENV_FILE=scripts\env\.packages.env"
 
 if not exist "%PACKAGES_ENV_FILE%" (
   echo [ERR] File %PACKAGES_ENV_FILE% not found

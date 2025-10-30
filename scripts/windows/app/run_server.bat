@@ -44,7 +44,7 @@ echo LDFLAGS: !LDFLAGS!
 
 rem --- READ ARGS FROM .ENV FILE ---
 
-set "ENV_FILE_PATH=deploy\env\local.env"
+set "ENV_FILE_PATH=deploy\env\.env"
 
 echo ENV_FILE_PATH: !ENV_FILE_PATH!
 

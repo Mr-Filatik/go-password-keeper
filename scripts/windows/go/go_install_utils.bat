@@ -8,7 +8,7 @@ pushd ..\..\..\ || (
   exit /b 1
 )
 
-set "UTILS_ENV_FILE=scripts\env\utils.env"
+set "UTILS_ENV_FILE=scripts\env\.utils.env"
 
 if not exist "%UTILS_ENV_FILE%" (
   echo [ERR] File %UTILS_ENV_FILE% not found
