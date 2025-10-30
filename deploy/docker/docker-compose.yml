@@ -38,4 +38,29 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin
     restart: unless-stopped
+
+  redis:
+    image: redis:${REDIS_VERSION:-latest}
+    hostname: redis
+    container_name: redis
+    ports:
+      - ${REDIS_PORT_EXTERNAL}:6379
+    volumes:
+      - ./data/redis:/data
+    environment:
+      ALLOW_EMPTY_PASSWROD: yes
+      REDIS_REPLICATION_MODE: master
+    restart: unless-stopped
+  
+  redis-exporter:
+    image: oliver006/redis_exporter:${REDIS_EXPORTER_VERSION:-latest}
+    hostname: redis-exporter
+    container_name: redis-exporter
+    ports:
+      - ${REDIS_EXPORTER_PORT_EXTERNAL}:9121
+    environment:
+      - REDIS_ADDR=redis://redis:6379
+    depends_on:
+      - redis
+
     
