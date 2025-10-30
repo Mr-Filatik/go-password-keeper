@@ -27,6 +27,8 @@ go.work.sum
 # env file (excluding .env file, which is an example of use)
 *.env
 !*.example.env
+!*.packages.env
+!*.utils.env
 
 # Editor/IDE
 .idea/
