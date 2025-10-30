@@ -15,6 +15,7 @@ import (
 	_ "github.com/mr-filatik/go-password-keeper/docs/swagger/server" // Swagger docs registration in HTTP server.
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	"github.com/mr-filatik/go-password-keeper/internal/server/http/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -71,7 +72,9 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 		},
 	}
 
-	srvr.registerRoutes()
+	srvr.registerMiddlewares()
+
+	srvr.registerHandlers()
 
 	logger.Info("Server create is successful")
 
@@ -139,7 +142,37 @@ func (s *Server) Close() error {
 	return nil
 }
 
-func (s *Server) registerRoutes() {
+func (s *Server) registerMiddlewares() {
+	// 	r.Use(RecoverMiddleware)     // 1️⃣ ловит паники
+	// r.Use(LoggingMiddleware)     // 2️⃣ логирует запрос/ответ
+	// r.Use(MetricsMiddleware)     // 3️⃣ собирает метрики
+	// r.Use(RequestIDMiddleware)   // 4️⃣ присваивает request id
+	// r.Use(AuthMiddleware)        // 5️⃣ авторизация и т.д.
+
+	// предлагается сделать один middleware для observability, который Recover, Logging и Metrics
+
+	s.router.Use(
+		middleware.Recover(s.logger),
+		middleware.RequestID(),
+		middleware.Logging(
+			s.logger,
+			//middleware.LoggingWithEnableBodyLogging(),
+			middleware.LoggingWithRequestRoute(func(r *http.Request) string {
+				return chi.RouteContext(r.Context()).RoutePattern()
+			}),
+		),
+		middleware.Metrics(
+			s.metricsProvider,
+			middleware.MetricsWithRequestRoute(func(r *http.Request) string {
+				return chi.RouteContext(r.Context()).RoutePattern()
+			}),
+		),
+	)
+
+	s.server.Handler = s.router
+}
+
+func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
 
 	metrics.RegisterHandler(s.router)
@@ -157,7 +190,9 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	start := time.Now()
+	panic(errors.New("aaaa"))
+
+	//start := time.Now()
 
 	s.logger.Info("ping")
 
@@ -166,16 +201,16 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 	//nolint:gosec // temp code
 	time.Sleep(time.Duration(rand.Int64N(tempRandValue)) * time.Millisecond)
 
-	s.metricsProvider.HTTP.IncRequestsCounter(metrics.HTTPRequestLabel{
-		Method:     r.Method,
-		Path:       "/ping",
-		StatusCode: http.StatusOK,
-	})
-	s.metricsProvider.HTTP.ObserveRequestDurationHistogram(metrics.HTTPRequestLabel{
-		Method:     r.Method,
-		Path:       "/ping",
-		StatusCode: http.StatusOK,
-	}, time.Since(start))
+	// s.metricsProvider.HTTP.IncRequestsCounter(metrics.HTTPRequestLabel{
+	// 	Method:     r.Method,
+	// 	Path:       "/ping",
+	// 	StatusCode: http.StatusOK,
+	// })
+	// s.metricsProvider.HTTP.ObserveRequestDurationHistogram(metrics.HTTPRequestLabel{
+	// 	Method:     r.Method,
+	// 	Path:       "/ping",
+	// 	StatusCode: http.StatusOK,
+	// }, time.Since(start))
 
 	_, err := w.Write([]byte("pong"))
 	if err != nil {
