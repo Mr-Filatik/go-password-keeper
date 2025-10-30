@@ -88,6 +88,21 @@ func Run() {
 
 	logger.Info("Application starting is successful")
 
+	// redisCacherConfig := redis.CacherConfig{
+	// 	ClientName: "server",
+	// 	Address:    "redis:6379",
+	// 	DBNumber:   0,
+	// 	Username:   "",
+	// 	Password:   "",
+	// }
+
+	// cacher := redis.NewCacher(redisCacherConfig, logger)
+
+	// cacherErr := cacher.Start(exitCtx)
+	// if cacherErr != nil {
+	// 	logger.Error("Starting cacher error", cacherErr)
+	// }
+
 	// ===== Waiting for the stop signal =====
 	<-exitCtx.Done()
 
