@@ -71,10 +71,18 @@ func (r *RequestObserver) GetProtocol() string {
 	return r.Proto
 }
 
+func (r *RequestObserver) GetHeader(hdrName string) string {
+	return r.Header.Get(hdrName)
+}
+
 // шаблон маршрута
 func (r *RequestObserver) GetRoute() string {
-	//return chi.RouteContext(r.Context()).RoutePattern()
-	return r.routerFn(r.Request)
+	route := r.routerFn(r.Request)
+	if route == "" {
+		return "/"
+	}
+
+	return route
 }
 
 func (r *RequestObserver) GetURI() string {

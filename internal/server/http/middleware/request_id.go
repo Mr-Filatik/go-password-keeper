@@ -11,15 +11,13 @@ import (
 // HeaderRequestID is the name of the HTTP header "X-Request-Id".
 const HeaderRequestID = "X-Request-Id"
 
-var (
-	// CtxKeyXRequestID - key for the HTTP header "X-Request-ID".
-	//
-	//nolint:gochecknoglobals // Migrate from platform to http
-	CtxKeyXRequestID = &context.CtxKey{Name: "x-request-id"}
-)
+// CtxKeyXRequestID - key for the HTTP header "X-Request-ID".
+//
+//nolint:gochecknoglobals // Migrate from platform to http
+var CtxKeyXRequestID = &context.CtxKey{Name: "x-request-id"}
 
 // RequestID creates a middleware for setting the request ID.
-func RequestID() func(http.Handler) http.Handler {
+func RequestID() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()

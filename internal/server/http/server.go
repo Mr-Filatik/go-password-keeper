@@ -142,30 +142,27 @@ func (s *Server) Close() error {
 	return nil
 }
 
+func routeFromChiContext(r *http.Request) string {
+	return chi.RouteContext(r.Context()).RoutePattern()
+}
+
 func (s *Server) registerMiddlewares() {
-	// 	r.Use(RecoverMiddleware)     // 1️⃣ ловит паники
-	// r.Use(LoggingMiddleware)     // 2️⃣ логирует запрос/ответ
-	// r.Use(MetricsMiddleware)     // 3️⃣ собирает метрики
-	// r.Use(RequestIDMiddleware)   // 4️⃣ присваивает request id
-	// r.Use(AuthMiddleware)        // 5️⃣ авторизация и т.д.
-
-	// предлагается сделать один middleware для observability, который Recover, Logging и Metrics
-
 	s.router.Use(
 		middleware.Recover(s.logger),
 		middleware.RequestID(),
 		middleware.Logging(
 			s.logger,
-			//middleware.LoggingWithEnableBodyLogging(),
-			middleware.LoggingWithRequestRoute(func(r *http.Request) string {
-				return chi.RouteContext(r.Context()).RoutePattern()
-			}),
+			middleware.LoggingOpts{
+				EnableRequestBodyLogging:  false,
+				EnableResponseBodyLogging: false,
+				RouteFn:                   routeFromChiContext,
+			},
 		),
 		middleware.Metrics(
 			s.metricsProvider,
-			middleware.MetricsWithRequestRoute(func(r *http.Request) string {
-				return chi.RouteContext(r.Context()).RoutePattern()
-			}),
+			middleware.MetricsOpts{
+				RouteFn: routeFromChiContext,
+			},
 		),
 	)
 
@@ -190,27 +187,12 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	panic(errors.New("aaaa"))
-
-	//start := time.Now()
-
 	s.logger.Info("ping")
 
 	w.WriteHeader(http.StatusOK)
 
 	//nolint:gosec // temp code
 	time.Sleep(time.Duration(rand.Int64N(tempRandValue)) * time.Millisecond)
-
-	// s.metricsProvider.HTTP.IncRequestsCounter(metrics.HTTPRequestLabel{
-	// 	Method:     r.Method,
-	// 	Path:       "/ping",
-	// 	StatusCode: http.StatusOK,
-	// })
-	// s.metricsProvider.HTTP.ObserveRequestDurationHistogram(metrics.HTTPRequestLabel{
-	// 	Method:     r.Method,
-	// 	Path:       "/ping",
-	// 	StatusCode: http.StatusOK,
-	// }, time.Since(start))
 
 	_, err := w.Write([]byte("pong"))
 	if err != nil {

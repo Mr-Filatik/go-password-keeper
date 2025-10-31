@@ -1,3 +1,4 @@
+// Package middleware provides functionality for HTTP middleware.
 package middleware
 
 import (
@@ -8,84 +9,79 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 )
 
-type LoggingOption func(*LoggingOpts)
-
+// LoggingOpts - options for logging middleware.
 type LoggingOpts struct {
-	EnableBodyRequestLogging  bool
-	EnableBodyResponseLogging bool
-	//MaskBody                  func(data []byte) []byte
-	//MaskURL                   func(uri *url.URL)
-	GetRequestRouteFn func(ctx *http.Request) string // Использовать строго после next.ServeHTTP(sw, r)
+	EnableRequestBodyLogging  bool      // Whether to enable request body logging.
+	EnableResponseBodyLogging bool      // Whether to enable response body logging.
+	RouteFn                   RouteFunc // Function for forming a route.
 }
 
-func LoggingWithEnableBodyLogging() LoggingOption {
-	return func(o *LoggingOpts) {
-		o.EnableBodyRequestLogging = true
-		o.EnableBodyResponseLogging = true
+// Logging represents middleware for logging HTTP handlers.
+//
+// Parameters:
+//   - logger logging.Logger: logger;
+//   - options MetricsOpts: options.
+//
+//nolint:funlen // the formation of log fields needs to be reworked
+func Logging(logger logging.Logger, options LoggingOpts) Middleware {
+	if options.RouteFn == nil {
+		options.RouteFn = defaultRouteFunc()
 	}
-}
 
-func LoggingWithRequestRoute(reqFn func(ctx *http.Request) string) LoggingOption {
-	return func(o *LoggingOpts) {
-		o.GetRequestRouteFn = reqFn
+	logFn := func(
+		status int,
+		duration time.Duration,
+		reqObs *observer.RequestObserver,
+		respObs *observer.ResponseObserver,
+	) {
+		fields := []any{
+			"duration_ms", duration.Milliseconds(),
+			"request_uri", reqObs.GetURI(),
+			"request_method", reqObs.GetMethod(),
+			"request_path", reqObs.GetURLPath(),
+			"request_query", reqObs.GetURLQuery(),
+			"request_protocol", reqObs.GetProtocol(),
+			"request_route", reqObs.GetRoute(),
+			"request_size", reqObs.GetBodySize(),
+			"response_status", status,
+			"response_size", respObs.GetBodySize(),
+			"request_id", reqObs.GetHeader(HeaderRequestID),
+			"span_id", reqObs.GetHeader("Span-ID"),
+			"trace_id", reqObs.GetHeader("Trace-ID"),
+		}
+
+		if options.EnableRequestBodyLogging {
+			fields = append(fields,
+				"request_body", reqObs.GetBodyString(),
+			)
+		}
+
+		if options.EnableResponseBodyLogging {
+			fields = append(fields,
+				"response_body", respObs.GetBodyString(),
+			)
+		}
+
+		logger.Info("HTTP Request-Response",
+			fields...,
+		)
 	}
-}
-
-// func LoggingWithMaskBody(fn func(data []byte) []byte) LoggingOption {
-// 	return func(o *LoggingOpts) {
-// 		o.MaskBody = fn
-// 	}
-// }
-
-// func LoggingWithMaskURL(fn func(uri *url.URL)) LoggingOption {
-// 	return func(o *LoggingOpts) {
-// 		o.MaskURL = fn
-// 	}
-// }
-
-func Logging(logger logging.Logger, opts ...LoggingOption) func(http.Handler) http.Handler {
-	options := defaultLoggingOpts()
-	applyLoggingOpts(options, opts)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			reqObs := observer.NewRequestObserver(r, options.EnableBodyRequestLogging, options.GetRequestRouteFn)
-			respObs := observer.NewResponseObserver(w, options.EnableBodyResponseLogging)
-
 			start := time.Now()
+
+			reqObs := observer.NewRequestObserver(r,
+				options.EnableRequestBodyLogging, options.RouteFn)
+			respObs := observer.NewResponseObserver(w, options.EnableResponseBodyLogging)
 
 			defer func() {
 				if rec := recover(); rec != nil {
-					fields := []any{
-						"duration_ms", time.Since(start).Milliseconds(),
-						"request_uri", reqObs.GetURI(),
-						"request_method", reqObs.GetMethod(),
-						"request_path", reqObs.GetURLPath(),
-						"request_query", reqObs.GetURLQuery(),
-						"request_protocol", reqObs.GetProtocol(),
-						"request_route", reqObs.GetRoute(),
-						"request_size", reqObs.GetBodySize(),
-						"response_status", http.StatusInternalServerError,
-						"response_size", respObs.GetBodySize(),
-						"request_id", r.Header.Get("X-Request-ID"),
-						"span_id", "",
-						"trace_id", "",
-					}
-
-					if options.EnableBodyRequestLogging {
-						fields = append(fields,
-							"request_body", reqObs.GetBodyString(),
-						)
-					}
-
-					if options.EnableBodyResponseLogging {
-						fields = append(fields,
-							"response_body", respObs.GetBodyString(),
-						)
-					}
-
-					logger.Info("HTTP Request-Response",
-						fields...,
+					logFn(
+						http.StatusInternalServerError,
+						time.Since(start),
+						reqObs,
+						respObs,
 					)
 
 					panic(rec)
@@ -96,60 +92,15 @@ func Logging(logger logging.Logger, opts ...LoggingOption) func(http.Handler) ht
 					status = http.StatusOK
 				}
 
-				fields := []any{
-					"duration_ms", time.Since(start).Milliseconds(),
-					"request_uri", reqObs.GetURI(),
-					"request_method", reqObs.GetMethod(),
-					"request_path", reqObs.GetURLPath(),
-					"request_query", reqObs.GetURLQuery(),
-					"request_protocol", reqObs.GetProtocol(),
-					"request_route", reqObs.GetRoute(),
-					"request_size", reqObs.GetBodySize(),
-					"response_status", status,
-					"response_size", respObs.GetBodySize(),
-					"request_id", r.Header.Get("X-Request-ID"),
-					"span_id", "",
-					"trace_id", "",
-				}
-
-				if options.EnableBodyRequestLogging {
-					fields = append(fields,
-						"request_body", reqObs.GetBodyString(),
-					)
-				}
-
-				if options.EnableBodyResponseLogging {
-					fields = append(fields,
-						"response_body", respObs.GetBodyString(),
-					)
-				}
-
-				logger.Info("HTTP Request-Response",
-					fields...,
+				logFn(
+					status,
+					time.Since(start),
+					reqObs,
+					respObs,
 				)
 			}()
 
 			next.ServeHTTP(respObs, r)
 		})
-	}
-}
-
-func defaultLoggingOpts() *LoggingOpts {
-	return &LoggingOpts{
-		EnableBodyRequestLogging:  false,
-		EnableBodyResponseLogging: false,
-		GetRequestRouteFn: func(r *http.Request) string {
-			return ""
-		},
-		// MaskBody: func(data []byte) []byte {
-		// 	return data
-		// },
-		// MaskURL: func(_ *url.URL) {},
-	}
-}
-
-func applyLoggingOpts(currentOpts *LoggingOpts, opts []LoggingOption) {
-	for _, apply := range opts {
-		apply(currentOpts)
 	}
 }

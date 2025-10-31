@@ -66,7 +66,8 @@ func TestRequestID_GeneratesWhenMissing(t *testing.T) {
 
 	ctxValue, reqHeader, respHeader := run(t, mdlwr, req)
 
-	require.NotEmptyf(t, reqHeader, "next handler saw empty %s header; want generated UUID", middleware.HeaderRequestID)
+	require.NotEmptyf(t, reqHeader,
+		"next handler saw empty %s header; want generated UUID", middleware.HeaderRequestID)
 
 	_, err := uuid.Parse(reqHeader)
 	require.NoErrorf(t, err, "next handler saw non-UUID %q", reqHeader)

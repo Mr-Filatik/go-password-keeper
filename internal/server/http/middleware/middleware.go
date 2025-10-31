@@ -1,16 +1,16 @@
+// Package middleware provides functionality for HTTP middleware.
 package middleware
 
 import "net/http"
 
+// Middleware describes the type for all middlewares in an application.
 type Middleware func(http.Handler) http.Handler
 
-func DefaultConveyour() []Middleware {
-	return []Middleware{}
-}
+// RouteFunc describes the type of function for getting a route.
+type RouteFunc func(*http.Request) string
 
-// [Recover]           // самый внешний; формирует 500, тело/заголовки при панике
-// [RequestID]         // чтобы ID попал в логи/метрики
-// [Logging]           // при панике логирует и re-panic
-// [Metrics]           // при панике пишет метрику 500 и re-panic
-// [Auth/RateLimit/...]
-// [Handlers]
+func defaultRouteFunc() RouteFunc {
+	return func(_ *http.Request) string {
+		return "unknown"
+	}
+}

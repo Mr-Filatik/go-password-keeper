@@ -1,3 +1,4 @@
+// Package middleware provides functionality for HTTP middleware.
 package middleware
 
 import (
@@ -16,7 +17,7 @@ import (
 //
 // Parameters:
 //   - logger logging.Logger: logger.
-func Recover(logger logging.Logger) func(http.Handler) http.Handler {
+func Recover(logger logging.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -27,7 +28,7 @@ func Recover(logger logging.Logger) func(http.Handler) http.Handler {
 					}
 
 					logger.Error("HTTP Request-Response Recover", err,
-						"request_id", r.Header.Get("X-Request-ID"),
+						"request_id", r.Header.Get(HeaderRequestID),
 						"callstack", string(debug.Stack()),
 					)
 
