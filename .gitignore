@@ -25,10 +25,10 @@ go.work
 go.work.sum
 
 # env file (excluding .env file, which is an example of use)
-local.env
-dev.env
-test.env
-prod.env
+*.env
+!*.example.env
+!*.packages.env
+!*.utils.env
 
 # Editor/IDE
 .idea/
