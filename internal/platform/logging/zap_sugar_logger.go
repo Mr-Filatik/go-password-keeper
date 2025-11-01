@@ -2,6 +2,7 @@
 package logging
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -67,11 +68,12 @@ func NewZapSugarLogger(
 		logLevel: logLevel,
 	}
 
-	zapSugarLogger.Info(
-		"logger initialized",
-		"level", zapSugarLogger.logLevel.String(),
-		"format", format,
+	msg := fmt.Sprintf(
+		"ZapSugar logger initialize is successful (format = %s; log level = %s)", // format log level перенести в data, переделать логгер, чтобы keysAndValues ...any был датой (доп данными)
+		format, logLevel.String(),
 	)
+
+	zapSugarLogger.Info(msg)
 
 	return zapSugarLogger, nil
 }

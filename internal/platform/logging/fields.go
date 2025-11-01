@@ -3,10 +3,11 @@ package logging
 
 // Main fields for logging.
 const (
-	FieldBaseTimestamp = "timestamp"
-	FieldBaseLevel     = "level"
-	FieldBaseMessage   = "message"
-	FieldBaseCaller    = "caller"
+	FieldBaseTimestamp = "timestamp" // Время логирования.
+	FieldBaseLevel     = "level"     // Уровень лога.
+	FieldBaseMessage   = "message"   // Сообщение указывающее причину лога, ошибки и т.п.
+	FieldBaseData      = "data"      // Дополнительные данные, не включаемый в сообщение.
+	FieldBaseCaller    = "caller"    // Место вызова кода.
 )
 
 // Fields used for tracing.
