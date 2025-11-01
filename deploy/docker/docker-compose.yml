@@ -4,7 +4,7 @@ services:
   server:
     container_name: server
     image: filatik/go-password-keeper/server:dev
-    labels: 
+    labels:
       co.elastic.logs/enabled: "true"
     build:
       context: ../.. # root with sources (go.mod, cmd/)
