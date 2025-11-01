@@ -11,7 +11,7 @@ import (
 
 // MetricsOpts - options for metrics middleware.
 type MetricsOpts struct {
-	RouteFn RouteFunc // Function for forming a route.
+	RouteFn observer.RouteFunc // Function for forming a route.
 }
 
 // Metrics represents middleware for tracking HTTP metrics.
@@ -20,10 +20,6 @@ type MetricsOpts struct {
 //   - metricsProvider *metrics.Provider: metrics provider;
 //   - options MetricsOpts: options.
 func Metrics(metricsProvider *metrics.Provider, options MetricsOpts) Middleware {
-	if options.RouteFn == nil {
-		options.RouteFn = defaultRouteFunc()
-	}
-
 	metrFn := func(duration time.Duration, route string, method string, statusCode int) {
 		metricsProvider.HTTP.IncRequestsCounter(metrics.HTTPRequestLabel{
 			Method:     method,

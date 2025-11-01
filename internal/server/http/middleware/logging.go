@@ -11,9 +11,9 @@ import (
 
 // LoggingOpts - options for logging middleware.
 type LoggingOpts struct {
-	EnableRequestBodyLogging  bool      // Whether to enable request body logging.
-	EnableResponseBodyLogging bool      // Whether to enable response body logging.
-	RouteFn                   RouteFunc // Function for forming a route.
+	EnableRequestBodyLogging  bool               // Whether to enable request body logging.
+	EnableResponseBodyLogging bool               // Whether to enable response body logging.
+	RouteFn                   observer.RouteFunc // Function for forming a route.
 }
 
 // Logging represents middleware for logging HTTP handlers.
@@ -24,10 +24,6 @@ type LoggingOpts struct {
 //
 //nolint:funlen // the formation of log fields needs to be reworked
 func Logging(logger logging.Logger, options LoggingOpts) Middleware {
-	if options.RouteFn == nil {
-		options.RouteFn = defaultRouteFunc()
-	}
-
 	logFn := func(
 		status int,
 		duration time.Duration,
