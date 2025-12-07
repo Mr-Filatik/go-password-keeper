@@ -12,8 +12,10 @@ services:
     restart: unless-stopped
     environment:
       - SERVER_ADDRESS=:8080
+      - DIAGNOSTIC_ADDRESS=:7070
     ports:
       - "${SERVER_HOST_PORT}:8080"
+      - "${DIAGNOSTIC_HOST_PORT}:7070"
 
   prometheus:
     image: prom/prometheus:${PROMETHEUS_VERSION:-latest}
