@@ -231,8 +231,10 @@ linters:
         - tt # using in table driven tests
       ignore-decls: # Default: []
         - fs *flag.FlagSet # using in configs
-        - r *http.Request # using in http handlers
-        - w http.ResponseWriter # using in http handlers
+        - mu sync.Mutex # standard variable name
+        - r *http.Request # standard variable name used in http handlers
+        - w http.ResponseWriter # standard variable name used in http handlers
+        - wg sync.WaitGroup # standard variable name
     # wastedassign:
     # whitespace:
     # wrapcheck:
