@@ -95,7 +95,33 @@ func (b *BaseMetrics) CreateCounter(opt CounterOpt) *prometheus.CounterVec {
 	return counter
 }
 
-// Gauge
+// GaugeOpt describes the parameters required to create a gauge metric.
+type GaugeOpt struct {
+	CommonOpt
+}
+
+// CreateGauge creates a new metrics gauge.
+//
+// Parameters:
+//   - opt GaugeOpt: parameters for creating a gauge.
+func (b *BaseMetrics) CreateGauge(opt GaugeOpt) *prometheus.GaugeVec {
+	counter := prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			ConstLabels: b.constLabels,
+			Namespace:   b.namespace,
+			Subsystem:   opt.Subsystem,
+			Name:        opt.Name,
+			Help:        opt.Help,
+		},
+		cloneLabelNames(opt.LabelNames),
+	)
+
+	//nolint:godox
+	// TODO: MustRegister panics when re-registering a metric.
+	b.reg.MustRegister(counter)
+
+	return counter
+}
 
 // HistogramOpt describes the parameters needed to create a histogram.
 type HistogramOpt struct {
