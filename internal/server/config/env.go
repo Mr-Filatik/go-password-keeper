@@ -4,13 +4,16 @@ package config
 import "os"
 
 const (
-	envNameServerAddress string = "SERVER_ADDRESS"
+	envNameServerAddress     string = "SERVER_ADDRESS"
+	envNameDiagnosticAddress string = "DIAGNOSTIC_ADDRESS"
 )
 
 // configEnvs - a structure containing the main environment variables for the application.
 type configEnvs struct {
-	serverAddress        string
-	serverAddressIsValue bool
+	serverAddress            string
+	serverAddressIsValue     bool
+	diagnosticAddress        string
+	diagnosticAddressIsValue bool
 }
 
 // envReader is an interface for reading environment variables.
@@ -19,14 +22,22 @@ type envReader func(key string) (string, bool)
 // getEnvsConfig gets values ​​from the store.
 func getEnvsConfig(getenv envReader) *configEnvs {
 	config := &configEnvs{
-		serverAddress:        "",
-		serverAddressIsValue: false,
+		serverAddress:            "",
+		serverAddressIsValue:     false,
+		diagnosticAddress:        "",
+		diagnosticAddressIsValue: false,
 	}
 
 	envAddress, ok := getenv(envNameServerAddress)
 	if ok && envAddress != "" {
 		config.serverAddress = envAddress
 		config.serverAddressIsValue = true
+	}
+
+	envDiagAddr, ok := getenv(envNameDiagnosticAddress)
+	if ok && envDiagAddr != "" {
+		config.diagnosticAddress = envDiagAddr
+		config.diagnosticAddressIsValue = true
 	}
 
 	return config
@@ -49,5 +60,9 @@ func (c *Config) overrideConfigFromEnvs(conf *configEnvs) {
 
 	if conf.serverAddressIsValue {
 		c.Address = conf.serverAddress
+	}
+
+	if conf.diagnosticAddressIsValue {
+		c.DiagnosticAddress = conf.diagnosticAddress
 	}
 }

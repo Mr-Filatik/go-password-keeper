@@ -8,23 +8,29 @@ import (
 )
 
 const (
-	flagNameServerAddress string = "server-address"
+	flagNameServerAddress     string = "server-address"
+	flagNameDiagnosticAddress string = "diagnostic-address"
 )
 
 // configFlags - a structure containing the main application flags.
 type configFlags struct {
-	serverAddress        string
-	serverAddressIsValue bool
+	serverAddress            string
+	serverAddressIsValue     bool
+	diagnosticAddress        string
+	diagnosticAddressIsValue bool
 }
 
 // getFlagsConfig gets the config from the specified arguments.
 func getFlagsConfig(fs *flag.FlagSet, args []string) (*configFlags, error) {
 	config := &configFlags{
-		serverAddress:        "",
-		serverAddressIsValue: false,
+		serverAddress:            "",
+		serverAddressIsValue:     false,
+		diagnosticAddress:        "",
+		diagnosticAddressIsValue: false,
 	}
 
 	argAddress := fs.String(flagNameServerAddress, "", "HTTP server endpoint")
+	argDiagAddr := fs.String(flagNameDiagnosticAddress, "", "HTTP disgnostic server endpoint")
 
 	err := fs.Parse(args)
 	if err != nil {
@@ -34,6 +40,11 @@ func getFlagsConfig(fs *flag.FlagSet, args []string) (*configFlags, error) {
 	if argAddress != nil && *argAddress != "" {
 		config.serverAddress = *argAddress
 		config.serverAddressIsValue = true
+	}
+
+	if argDiagAddr != nil && *argDiagAddr != "" {
+		config.diagnosticAddress = *argDiagAddr
+		config.diagnosticAddressIsValue = true
 	}
 
 	return config, nil
@@ -59,5 +70,9 @@ func (c *Config) overrideConfigFromFlags(conf *configFlags) {
 
 	if conf.serverAddressIsValue {
 		c.Address = conf.serverAddress
+	}
+
+	if conf.diagnosticAddressIsValue {
+		c.DiagnosticAddress = conf.diagnosticAddress
 	}
 }

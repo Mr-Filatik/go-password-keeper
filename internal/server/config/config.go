@@ -3,13 +3,17 @@ package config
 
 // Constants are default values.
 const (
-	defaultAddress string = ":8080"
+	defaultAddress           string = ":8080"
+	defaultDiagnosticAddress string = ":7070"
 )
 
 // Config is a structure containing the main parameters of the application.
 type Config struct {
 	// Address - server startup address.
 	Address string
+
+	// DiagnosticAddress - diagnostic server startup address.
+	DiagnosticAddress string
 }
 
 // Initialize creates and initializes a *Config object.
@@ -29,7 +33,8 @@ func Initialize() *Config {
 
 func createAndOverrideConfig(flagsConf *configFlags, envsConf *configEnvs) *Config {
 	config := &Config{
-		Address: defaultAddress,
+		Address:           defaultAddress,
+		DiagnosticAddress: defaultDiagnosticAddress,
 	}
 
 	config.overrideConfigFromFlags(flagsConf)
