@@ -20,11 +20,12 @@ type Cacher struct {
 
 // CacherConfig describes the configuration for Cacher.
 type CacherConfig struct {
-	ClientName string
-	Address    string // Address
-	DBNumber   int    // Database number
-	Username   string
-	Password   string
+	ClientName  string
+	Address     string // Address
+	DBNumber    int    // Database number
+	Username    string
+	Password    string
+	ConnTimeout time.Duration // timeout for ping when starting the application
 }
 
 // NewCacher creates a new *Cacher instance.
@@ -51,7 +52,7 @@ func NewCacher(conf CacherConfig, logger logging.Logger) *Cacher {
 // Start - starting the cacher.
 //
 // Implements the server.IServer interface.
-func (c *Cacher) Start(_ context.Context) error {
+func (c *Cacher) Start(ctx context.Context) error {
 	c.logger.Info(
 		"Cacher starting...",
 		"address", c.config.Address,
@@ -68,6 +69,14 @@ func (c *Cacher) Start(_ context.Context) error {
 	}
 
 	c.client = redis.NewClient(redisOptions)
+
+	pingCtx, cancel := context.WithTimeout(ctx, c.config.ConnTimeout)
+	defer cancel()
+
+	pingErr := c.client.Ping(pingCtx).Err()
+	if pingErr != nil {
+		return fmt.Errorf("connect to redis error: %w", pingErr)
+	}
 
 	c.logger.Info("Cacher start is successful")
 
