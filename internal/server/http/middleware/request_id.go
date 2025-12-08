@@ -31,8 +31,8 @@ func RequestID() Middleware {
 
 			ctx = context.WithValue(ctx, CtxKeyXRequestID, requestID)
 
-			logger := context.GetLogger(ctx).With(logging.FieldRequestID, requestID)
-			ctx = context.WithLogger(ctx, logger)
+			logger := logging.FromContext(ctx).With(logging.FieldRequestID, requestID)
+			ctx = logging.ToContext(ctx, logger)
 
 			w.Header().Set(HeaderRequestID, requestID)
 			next.ServeHTTP(w, r.WithContext(ctx))

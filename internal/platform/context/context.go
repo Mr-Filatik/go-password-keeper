@@ -3,8 +3,6 @@ package context
 
 import (
 	"context"
-
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 )
 
 // CtxKey is a structure describing keys for working with context variables.
@@ -40,32 +38,4 @@ func GetValue(ctx context.Context, key *CtxKey) string {
 	}
 
 	return strValue
-}
-
-// CtxKeyLogger - key for the ctx header "logger".
-//
-//nolint:gochecknoglobals // Migrate from platform to http
-var CtxKeyLogger = &CtxKey{Name: "logger"}
-
-// WithLogger sets the logger to the context.
-func WithLogger(ctx context.Context, logger logging.Logger) context.Context {
-	return context.WithValue(ctx, CtxKeyLogger, logger)
-}
-
-// GetLogger gets the logger from the context.
-// TODO: rename to FromContext and move to the loggingctx package.
-//
-//nolint:godox,ireturn // Necessary to fix the function in the interface.
-func GetLogger(ctx context.Context) logging.Logger {
-	value := ctx.Value(CtxKeyLogger)
-	if value == nil {
-		return nil
-	}
-
-	logger, ok := value.(logging.Logger)
-	if !ok {
-		return nil
-	}
-
-	return logger
 }

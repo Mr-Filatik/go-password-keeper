@@ -7,7 +7,7 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/context"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 )
 
 // Recover intercepts request panics and logs them.
@@ -24,7 +24,7 @@ func Recover() Middleware {
 						panic(rec)
 					}
 
-					logger := context.GetLogger(r.Context())
+					logger := logging.FromContext(r.Context())
 
 					logger.Error("HTTP Request-Response Recover", err,
 						"request_id", r.Header.Get(HeaderRequestID),

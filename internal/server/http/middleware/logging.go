@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/context"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/http/observer"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 )
 
 // LoggingOpts - options for logging middleware.
@@ -58,7 +58,7 @@ func Logging(options LoggingOpts) Middleware {
 			)
 		}
 
-		logger := context.GetLogger(reqObs.GetContext())
+		logger := logging.FromContext(reqObs.GetContext())
 
 		logger.Info("HTTP Request-Response",
 			fields...,
