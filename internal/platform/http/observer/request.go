@@ -3,6 +3,7 @@ package observer
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 )
@@ -140,4 +141,8 @@ func (r *RequestObserver) GetRoute() string {
 // GetURI returns the URI for the request.
 func (r *RequestObserver) GetURI() string {
 	return r.Method + " " + r.URL.RequestURI() + " " + r.Proto
+}
+
+func (r *RequestObserver) GetContext() context.Context {
+	return r.Context()
 }
