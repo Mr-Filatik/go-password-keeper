@@ -76,6 +76,29 @@ func NewZapSugarLogger(
 	return zapSugarLogger, nil
 }
 
+// NewZapSugarLoggerWithFields creates a new *ZapSugarLogger logger instance with common fields (labels).
+//
+// Parameters:
+//   - logLevel LogLevel: logging level;
+//   - out io.Writer: log output;
+//   - format LogFormat: log output format;
+//   - keysAndValues ...any: common fields (labels).
+//
+//nolint:ireturn // Necessary to fix the function in the interface.
+func NewZapSugarLoggerWithFields(
+	logLevel LogLevel,
+	out io.Writer,
+	format LogFormat,
+	keysAndValues ...any,
+) (Logger, error) {
+	logger, err := NewZapSugarLogger(logLevel, out, format)
+	if err != nil {
+		return logger, err
+	}
+
+	return logger.With(keysAndValues...), nil
+}
+
 // With returns a new logger with added common fields (labels).
 //
 // Parameters:
