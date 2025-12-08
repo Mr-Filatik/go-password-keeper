@@ -143,6 +143,7 @@ func (r *RequestObserver) GetURI() string {
 	return r.Method + " " + r.URL.RequestURI() + " " + r.Proto
 }
 
+// GetContext returns the context for a request.
 func (r *RequestObserver) GetContext() context.Context {
 	return r.Context()
 }
