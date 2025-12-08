@@ -22,9 +22,9 @@ type ZapSugarLogger struct {
 // NewZapSugarLogger creates a new *ZapSugarLogger logger instance.
 //
 // Parameters:
-//   - logLevel: logging level;
-//   - out: log output;
-//   - format: log output format.
+//   - logLevel LogLevel: logging level;
+//   - out io.Writer: log output;
+//   - format LogFormat: log output format.
 func NewZapSugarLogger(
 	logLevel LogLevel,
 	out io.Writer,
@@ -38,10 +38,10 @@ func NewZapSugarLogger(
 
 	config := zap.NewProductionEncoderConfig()
 	config.EncodeTime = zapcore.ISO8601TimeEncoder
-	config.TimeKey = "ts"
-	config.LevelKey = "level"
-	config.MessageKey = "msg"
-	config.CallerKey = "caller"
+	config.TimeKey = FieldBaseTimestamp
+	config.LevelKey = FieldBaseLevel
+	config.MessageKey = FieldBaseMessage
+	config.CallerKey = FieldBaseCaller
 	config.EncodeLevel = zapcore.CapitalLevelEncoder // for text can be replaced with CapitalColorLevelEncoder
 
 	var encoder zapcore.Encoder
@@ -59,7 +59,7 @@ func NewZapSugarLogger(
 	core := zapcore.NewCore(
 		encoder,
 		zapcore.AddSync(out),
-		mapToZapCoreLevel(logLevel),
+		levelToZapCoreLevel(logLevel),
 	)
 
 	zapLogger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
@@ -68,100 +68,113 @@ func NewZapSugarLogger(
 		logLevel: logLevel,
 	}
 
-	msg := fmt.Sprintf(
-		"ZapSugar logger initialize is successful (format = %s; log level = %s)", // format log level перенести в data, переделать логгер, чтобы keysAndValues ...any был датой (доп данными)
-		format, logLevel.String(),
+	zapSugarLogger.Info("ZapSugar logger initialize is successful",
+		"format", format,
+		"level", logLevel.String(),
 	)
 
-	zapSugarLogger.Info(msg)
-
 	return zapSugarLogger, nil
+}
+
+// With returns a new logger with added common fields (labels).
+//
+// Parameters:
+//   - keysAndValues ...any: common fields (labels).
+//
+// Implements the internal/platform/logging.Logger interface.
+//
+//nolint:ireturn // Necessary to fix the function in the interface.
+func (l *ZapSugarLogger) With(keysAndValues ...any) Logger {
+	if l == nil {
+		return nil
+	}
+
+	return &ZapSugarLogger{
+		log:      l.log.With(keysAndValues...),
+		logLevel: l.logLevel,
+	}
 }
 
 // Debug logs the message and parameters with the debug level.
 //
 // Parameters:
-//   - message: main log message;
-//   - keysAndValues: additional information as a key-value pair.
+//   - msg string: main log message;
+//   - datas ...any: additional information as a key-value pair.
 //
 // Implements the internal/platform/logging.Logger interface.
-func (l *ZapSugarLogger) Debug(msg string, keysAndValues ...any) {
+func (l *ZapSugarLogger) Debug(msg string, datas ...any) {
 	if LevelDebug < l.logLevel {
 		return
 	}
 
-	l.log.Debugw(msg, keysAndValues...)
+	l.log.Debugw(msg, FieldBaseData, datasToMap(datas...))
 }
 
 // Info logs the message and parameters with the info level.
 //
 // Parameters:
-//   - message: main log message;
-//   - keysAndValues: additional information as a key-value pair.
+//   - msg string: main log message;
+//   - datas ...any: additional information as a key-value pair.
 //
 // Implements the internal/platform/logging.Logger interface.
-func (l *ZapSugarLogger) Info(msg string, keysAndValues ...any) {
+func (l *ZapSugarLogger) Info(msg string, datas ...any) {
 	if LevelInfo < l.logLevel {
 		return
 	}
 
-	l.log.Infow(msg, keysAndValues...)
+	l.log.Infow(msg, FieldBaseData, datasToMap(datas...))
 }
 
 // Warn logs a message and parameters with the warn level and a possible (non-critical) error.
 //
 // Parameters:
-//   - message: main log message;
-//   - err: possible error;
-//   - keysAndValues: additional information as a key-value pair.
+//   - msg string: main log message;
+//   - err error: possible error;
+//   - datas ...any: additional information as a key-value pair.
 //
 // Implements the internal/platform/logging.Logger interface.
-func (l *ZapSugarLogger) Warn(msg string, err error, keysAndValues ...any) {
+func (l *ZapSugarLogger) Warn(msg string, err error, datas ...any) {
 	if LevelWarn < l.logLevel {
 		return
 	}
 
 	if err != nil {
-		keysAndValues = append(keysAndValues, "error", err.Error())
+		l.log.Warnw(msg, FieldBaseError, err.Error(), FieldBaseData, datasToMap(datas...))
 	}
 
-	l.log.Warnw(msg, keysAndValues...)
+	l.log.Warnw(msg, FieldBaseData, datasToMap(datas...))
 }
 
 // Error logs a message and parameters with the error level and error.
 //
 // Parameters:
-//   - message: main log message;
-//   - err: error;
-//   - keysAndValues: additional information as a key-value pair.
+//   - msg string: main log message;
+//   - err error: error;
+//   - datas ...any: additional information as a key-value pair.
 //
 // Implements the internal/platform/logging.Logger interface.
-func (l *ZapSugarLogger) Error(msg string, err error, keysAndValues ...any) {
+func (l *ZapSugarLogger) Error(msg string, err error, datas ...any) {
 	if LevelError < l.logLevel {
 		return
 	}
 
-	keysAndValues = append(keysAndValues, "error", err.Error())
-
-	l.log.Errorw(msg, keysAndValues...)
+	l.log.Errorw(msg, FieldBaseError, err.Error(), FieldBaseData, datasToMap(datas...))
 }
 
 // Fatal logs a message and parameters with the fatal and critical error levels.
 //
 // Parameters:
-//   - message: main log message;
-//   - err: critical error;
-//   - keysAndValues: additional information as a key-value pair.
+//   - msg string: main log message;
+//   - err error: critical error;
+//   - datas ...any: additional information as a key-value pair.
 //
 // Implements the internal/platform/logging.Logger interface.
-func (l *ZapSugarLogger) Fatal(msg string, err error, keysAndValues ...any) {
+func (l *ZapSugarLogger) Fatal(msg string, err error, datas ...any) {
 	if LevelFatal < l.logLevel {
 		return
 	}
 
-	keysAndValues = append(keysAndValues, "error", err.Error())
-
-	l.log.Fatalw(msg, keysAndValues...)
+	l.log.Fatalw(msg, FieldBaseError, err.Error(), FieldBaseData, datasToMap(datas...))
 }
 
 // Close releases resources used by the logger.
@@ -173,11 +186,41 @@ func (l *ZapSugarLogger) Close() error {
 	return nil
 }
 
-// mapToZapCoreLevel — mapping LogLevel to zapcore.Level.
+// datasToMap converts a data slice into a map.
 //
 // Parameters:
-//   - level: logging level.
-func mapToZapCoreLevel(level LogLevel) zapcore.Level {
+//   - datas ...any: additional data for logging.
+func datasToMap(datas ...any) map[string]any {
+	if len(datas) == 0 {
+		return make(map[string]any)
+	}
+
+	const pair = 2
+
+	dataMap := make(map[string]any, len(datas)/pair)
+
+	for index := 0; index < len(datas); index += pair {
+		if index+1 >= len(datas) {
+			break
+		}
+
+		key, ok := datas[index].(string)
+		if !ok {
+			// If the key is not a string, we give it a service name.
+			key = fmt.Sprintf("arg_%d", index/pair)
+		}
+
+		dataMap[key] = datas[index+1]
+	}
+
+	return dataMap
+}
+
+// levelToZapCoreLevel — mapping LogLevel to zapcore.Level.
+//
+// Parameters:
+//   - level LogLevel: logging level.
+func levelToZapCoreLevel(level LogLevel) zapcore.Level {
 	switch level {
 	case LevelDebug:
 		return zapcore.DebugLevel
