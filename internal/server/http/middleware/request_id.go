@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/context"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 )
 
 // HeaderRequestID is the name of the HTTP header "X-Request-Id".
@@ -29,6 +30,9 @@ func RequestID() Middleware {
 			}
 
 			ctx = context.WithValue(ctx, CtxKeyXRequestID, requestID)
+
+			logger := context.GetLogger(ctx).With(logging.FieldRequestID, requestID)
+			ctx = context.WithLogger(ctx, logger)
 
 			w.Header().Set(HeaderRequestID, requestID)
 			next.ServeHTTP(w, r.WithContext(ctx))

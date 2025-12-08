@@ -7,17 +7,14 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/context"
 )
 
 // Recover intercepts request panics and logs them.
 //
 // Prevents interception of http.ErrAbortHandler.
 // Does not record the response for an Upgrade connection (websocket, etc.).
-//
-// Parameters:
-//   - logger logging.Logger: logger.
-func Recover(logger logging.Logger) Middleware {
+func Recover() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -26,6 +23,8 @@ func Recover(logger logging.Logger) Middleware {
 					if ok && errors.Is(err, http.ErrAbortHandler) {
 						panic(rec)
 					}
+
+					logger := context.GetLogger(r.Context())
 
 					logger.Error("HTTP Request-Response Recover", err,
 						"request_id", r.Header.Get(HeaderRequestID),

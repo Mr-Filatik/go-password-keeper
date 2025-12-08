@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mr-filatik/go-password-keeper/internal/platform/context"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/http/observer"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 )
 
 // LoggingOpts - options for logging middleware.
@@ -23,7 +23,7 @@ type LoggingOpts struct {
 //   - options MetricsOpts: options.
 //
 //nolint:funlen // the formation of log fields needs to be reworked
-func Logging(logger logging.Logger, options LoggingOpts) Middleware {
+func Logging(options LoggingOpts) Middleware {
 	logFn := func(
 		status int,
 		duration time.Duration,
@@ -57,6 +57,8 @@ func Logging(logger logging.Logger, options LoggingOpts) Middleware {
 				"response_body", respObs.GetBodyString(),
 			)
 		}
+
+		logger := context.GetLogger(reqObs.GetContext())
 
 		logger.Info("HTTP Request-Response",
 			fields...,
