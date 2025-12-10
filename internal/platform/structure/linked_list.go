@@ -14,7 +14,22 @@ type LinkedListNode[T any] struct {
 	Item     T
 	next     *LinkedListNode[T]
 	prev     *LinkedListNode[T]
-	UpdateAt time.Time
+	updateAt time.Time
+}
+
+// LastUpdateAt returns the time of the last update of the node.
+// If the receiver is nil, LastUpdateAt returns the zero time.
+//
+// Note: LastUpdateAt itself does not perform any synchronization.
+// To avoid data races, callers must ensure that the node is not being
+// modified concurrently (for example, by accessing it only through
+// LinkedList methods that provide locking).
+func (n *LinkedListNode[T]) LastUpdateAt() time.Time {
+	if n == nil {
+		return time.Time{}
+	}
+
+	return n.updateAt
 }
 
 // LinkedList is a generic, doubly linked list.
@@ -63,7 +78,7 @@ func (l *LinkedList[T]) PushFront(value T) *LinkedListNode[T] {
 		next:     l.first,
 		prev:     nil,
 		Item:     value,
-		UpdateAt: now,
+		updateAt: now,
 	}
 
 	if l.first == nil {
@@ -94,7 +109,7 @@ func (l *LinkedList[T]) PushBack(value T) *LinkedListNode[T] {
 		next:     nil,
 		prev:     l.last,
 		Item:     value,
-		UpdateAt: now,
+		updateAt: now,
 	}
 
 	if l.last == nil {
@@ -147,7 +162,7 @@ func (l *LinkedList[T]) MoveFront(item *LinkedListNode[T]) {
 	l.first.prev = item
 	l.first = item
 
-	item.UpdateAt = now
+	item.updateAt = now
 }
 
 // MoveBack moves the given node to the back of the list.
@@ -185,7 +200,7 @@ func (l *LinkedList[T]) MoveBack(item *LinkedListNode[T]) {
 	l.last.next = item
 	l.last = item
 
-	item.UpdateAt = now
+	item.updateAt = now
 }
 
 // Remove deletes the given node from the list.
