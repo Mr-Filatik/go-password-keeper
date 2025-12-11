@@ -65,6 +65,32 @@ func (l *LinkedList[T]) Len() int {
 	return n
 }
 
+// First returns the first node in the list, or nil if the list is empty.
+// It acquires a read lock while reading the pointer, but the returned node
+// is not protected from concurrent modifications after the method returns.
+func (l *LinkedList[T]) First() *LinkedListNode[T] {
+	l.mu.RLock()
+
+	item := l.first
+
+	l.mu.RUnlock()
+
+	return item
+}
+
+// Last returns the last node in the list, or nil if the list is empty.
+// It acquires a read lock while reading the pointer, but the returned node
+// is not protected from concurrent modifications after the method returns.
+func (l *LinkedList[T]) Last() *LinkedListNode[T] {
+	l.mu.RLock()
+
+	item := l.last
+
+	l.mu.RUnlock()
+
+	return item
+}
+
 // PushFront inserts a new node with the given value at the front of the list
 // and returns the created node. The node's ExpireAt is set to the current
 // time in UTC. PushFront is safe for concurrent use.
