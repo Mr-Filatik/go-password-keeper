@@ -1,734 +1,242 @@
 package logging_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
-	"io"
+	"strings"
 	"testing"
 
-	"github.com/mr-filatik/go-password-keeper/internal/mocks"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-/*
-	TestNewZapSugarLogger
-*/
-
-type argsNewZapSugarLogger struct {
-	logLevel logging.LogLevel
-	format   logging.LogFormat
-}
-
-type wantNewZapSugarLogger struct {
-	data []string
-}
-
-type testNewZapSugarLogger struct {
-	name string
-	args argsNewZapSugarLogger
-	want wantNewZapSugarLogger
-}
-
-func getTestsNewZapSugarLogger() []testNewZapSugarLogger {
-	getDataInJSON := func(loggerLogLevel logging.LogLevel) []string {
-		return []string{
-			"\"level\":\"INFO\"",
-			"\"ts\":",
-			"\"caller\":\"logging/zap_sugar_logger.go:", // without line
-			"\"msg\":\"logger initialized\"",
-			"\"level\":\"" + loggerLogLevel.String() + "\"",
-			"\"format\":\"JSON\"",
-		}
-	}
-
-	return []testNewZapSugarLogger{
-		{
-			name: "debug level",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelDebug,
-				format:   logging.FormatJSON,
-			},
-			want: wantNewZapSugarLogger{
-				data: getDataInJSON(logging.LevelDebug),
-			},
-		},
-		{
-			name: "info level",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelInfo,
-				format:   logging.FormatJSON,
-			},
-			want: wantNewZapSugarLogger{
-				data: getDataInJSON(logging.LevelInfo),
-			},
-		},
-		{
-			name: "info level in text format",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelInfo,
-				format:   logging.FormatText,
-			},
-			want: wantNewZapSugarLogger{
-				data: []string{
-					"INFO",
-					"logging/zap_sugar_logger.go:", // without line
-					"logger initialized",
-					"\"level\": \"info\"",
-					"\"format\": \"TEXT\"",
-				},
-			},
-		},
-		{
-			name: "info level in unknown format",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelInfo,
-				format:   logging.LogFormat("UNKNOWN"),
-			},
-			want: wantNewZapSugarLogger{
-				data: getDataInJSON(logging.LevelInfo),
-			},
-		},
-		{
-			name: "warning level",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelWarn,
-				format:   logging.FormatJSON,
-			},
-			want: wantNewZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name: "error level",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelError,
-				format:   logging.FormatJSON,
-			},
-			want: wantNewZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name: "fatal level",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LevelFatal,
-				format:   logging.FormatJSON,
-			},
-			want: wantNewZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name: "unknown level",
-			args: argsNewZapSugarLogger{
-				logLevel: logging.LogLevel(99),
-				format:   logging.FormatJSON,
-			},
-			want: wantNewZapSugarLogger{
-				data: nil,
-			},
-		},
-	}
-}
-
-func TestNewZapSugarLogger(t *testing.T) {
-	t.Parallel()
-
-	tests := getTestsNewZapSugarLogger()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			mockWriter := mocks.NewMockWriter()
-
-			require.NotNilf(t, mockWriter, "NewMockWriter() writer = nil")
-
-			logger, err := logging.NewZapSugarLogger(tt.args.logLevel, mockWriter, tt.args.format)
-
-			require.NoErrorf(t, err, "NewZapSugarLogger() error = %v, want nil", err)
-			require.NotNilf(t, logger, "NewZapSugarLogger() logger = nil")
-
-			if tt.want.data != nil {
-				lastLog, _ := mockWriter.GetUnreadedData()
-				for _, item := range tt.want.data {
-					assert.Containsf(t, string(lastLog), item, "last log not contains %v", item)
-				}
-			}
-		})
-	}
-}
-
-/*
-	TestZapSugarLogger
-*/
-
-var errTestReason = errors.New("test reason")
-
-type argsZapSugarLogger struct {
-	msg           string
-	err           error
-	keysAndValues []any
-}
-
-type wantZapSugarLogger struct {
-	data []string
-}
-
-type testZapSugarLogger struct {
-	name           string
-	loggerLogLevel logging.LogLevel
-	args           argsZapSugarLogger
-	want           wantZapSugarLogger
-}
-
-/*
-	TestZapSugarLogger_Debug
-*/
-
-func getTestsZapSugarLoggerDebug() []testZapSugarLogger {
-	return []testZapSugarLogger{
-		{
-			name:           "debug logger",
-			loggerLogLevel: logging.LevelDebug,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"DEBUG\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-				},
-			},
-		},
-		{
-			name:           "info logger",
-			loggerLogLevel: logging.LevelInfo,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name:           "warning logger",
-			loggerLogLevel: logging.LevelWarn,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name:           "error logger",
-			loggerLogLevel: logging.LevelError,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name:           "fatal logger",
-			loggerLogLevel: logging.LevelFatal,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-	}
-}
-
-func TestZapSugarLogger_Debug(t *testing.T) {
-	t.Parallel()
-
-	logLevel := logging.LevelDebug
-	tests := getTestsZapSugarLoggerDebug()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			mockWriter := createMockWriter(t)
-			logger := createLogger(t, mockWriter, tt.loggerLogLevel)
-
-			mockWriter.MarkDataAsRead()
-
-			logger.Debug(tt.args.msg, tt.args.keysAndValues...)
-
-			if tt.want.data != nil {
-				t.Logf("\n[%s]\nthe %s level log was written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-
-				lastLog, isLastLog := mockWriter.GetUnreadedData()
-
-				require.Truef(t, isLastLog, "the log should have been written, but it is missing")
-
-				for _, item := range tt.want.data {
-					assert.Containsf(t, string(lastLog), item, "last log not contains %v", item)
-				}
-			} else {
-				t.Logf("\n[%s]\nthe %s level log was NOT written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-			}
-		})
-	}
-}
-
-/*
-	TestZapSugarLogger_Info
-*/
-
-func getTestsZapSugarLoggerInfo() []testZapSugarLogger {
-	return []testZapSugarLogger{
-		{
-			name:           "debug logger",
-			loggerLogLevel: logging.LevelDebug,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"INFO\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-				},
-			},
-		},
-		{
-			name:           "info logger",
-			loggerLogLevel: logging.LevelInfo,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"INFO\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-				},
-			},
-		},
-		{
-			name:           "warning logger",
-			loggerLogLevel: logging.LevelWarn,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name:           "error logger",
-			loggerLogLevel: logging.LevelError,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name:           "fatal logger",
-			loggerLogLevel: logging.LevelFatal,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-	}
-}
-
-func TestZapSugarLogger_Info(t *testing.T) {
-	t.Parallel()
-
-	logLevel := logging.LevelInfo
-	tests := getTestsZapSugarLoggerInfo()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			mockWriter := createMockWriter(t)
-			logger := createLogger(t, mockWriter, tt.loggerLogLevel)
-
-			mockWriter.MarkDataAsRead()
-
-			logger.Info(tt.args.msg, tt.args.keysAndValues...)
-
-			if tt.want.data != nil {
-				t.Logf("\n[%s]\nthe %s level log was written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-
-				lastLog, isLastLog := mockWriter.GetUnreadedData()
-
-				require.Truef(t, isLastLog, "the log should have been written, but it is missing")
-
-				for _, item := range tt.want.data {
-					assert.Containsf(t, string(lastLog), item, "last log not contains %v", item)
-				}
-			} else {
-				t.Logf("\n[%s]\nthe %s level log was NOT written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-			}
-		})
-	}
-}
-
-/*
-	TestZapSugarLogger_Warn
-*/
-
-func getTestsZapSugarLoggerWarn() []testZapSugarLogger {
-	return []testZapSugarLogger{
-		{
-			name:           "debug logger",
-			loggerLogLevel: logging.LevelDebug,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"WARN\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "info logger",
-			loggerLogLevel: logging.LevelInfo,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"WARN\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "warning logger",
-			loggerLogLevel: logging.LevelWarn,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"WARN\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "warning logger with error",
-			loggerLogLevel: logging.LevelWarn,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           nil,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"WARN\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-				},
-			},
-		},
-		{
-			name:           "error logger",
-			loggerLogLevel: logging.LevelError,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-		{
-			name:           "fatal logger",
-			loggerLogLevel: logging.LevelFatal,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-	}
-}
-
-func TestZapSugarLogger_Warn(t *testing.T) {
-	t.Parallel()
-
-	logLevel := logging.LevelWarn
-	tests := getTestsZapSugarLoggerWarn()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			mockWriter := createMockWriter(t)
-			logger := createLogger(t, mockWriter, tt.loggerLogLevel)
-
-			mockWriter.MarkDataAsRead()
-
-			logger.Warn(tt.args.msg, tt.args.err, tt.args.keysAndValues...)
-
-			if tt.want.data != nil {
-				t.Logf("\n[%s]\nthe %s level log was written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-
-				lastLog, isLastLog := mockWriter.GetUnreadedData()
-
-				require.Truef(t, isLastLog, "the log should have been written, but it is missing")
-
-				for _, item := range tt.want.data {
-					assert.Containsf(t, string(lastLog), item, "last log not contains %v", item)
-				}
-			} else {
-				t.Logf("\n[%s]\nthe %s level log was NOT written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-			}
-		})
-	}
-}
-
-/*
-	TestZapSugarLogger_Error
-*/
-
-func getTestsZapSugarLoggerError() []testZapSugarLogger {
-	return []testZapSugarLogger{
-		{
-			name:           "debug logger",
-			loggerLogLevel: logging.LevelDebug,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"ERROR\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "info logger",
-			loggerLogLevel: logging.LevelInfo,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"ERROR\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "warning logger",
-			loggerLogLevel: logging.LevelWarn,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"ERROR\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "error logger",
-			loggerLogLevel: logging.LevelError,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: []string{
-					"\"level\":\"ERROR\"",
-					"\"caller\":\"logging/zap_sugar_logger_test.go:", // without line
-					"\"msg\":\"test message\"",
-					"\"test key\":\"test value\"",
-					"\"error\":\"test reason\"",
-				},
-			},
-		},
-		{
-			name:           "fatal logger",
-			loggerLogLevel: logging.LevelFatal,
-			args: argsZapSugarLogger{
-				msg:           "test message",
-				err:           errTestReason,
-				keysAndValues: []any{"test key", "test value"},
-			},
-			want: wantZapSugarLogger{
-				data: nil,
-			},
-		},
-	}
-}
-
-func TestZapSugarLogger_Error(t *testing.T) {
-	t.Parallel()
-
-	logLevel := logging.LevelError
-	tests := getTestsZapSugarLoggerError()
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			mockWriter := createMockWriter(t)
-			logger := createLogger(t, mockWriter, tt.loggerLogLevel)
-
-			mockWriter.MarkDataAsRead()
-
-			logger.Error(tt.args.msg, tt.args.err, tt.args.keysAndValues...)
-
-			if tt.want.data != nil {
-				t.Logf("\n[%s]\nthe %s level log was written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-
-				lastLog, isLastLog := mockWriter.GetUnreadedData()
-
-				require.Truef(t, isLastLog, "the log should have been written, but it is missing")
-
-				for _, item := range tt.want.data {
-					assert.Containsf(t, string(lastLog), item, "last log not contains %v", item)
-				}
-			} else {
-				t.Logf("\n[%s]\nthe %s level log was NOT written by the %s level logger",
-					tt.name, logLevel, tt.loggerLogLevel)
-			}
-		})
-	}
-}
-
-/*
-	TestZapSugarLogger_Fatal
-*/
-
-func TestZapSugarLogger_Fatal(t *testing.T) {
-	t.Parallel()
-
-	// zap.SugaredLogger calls os.Exit(1) at Fatal level
-	// For tests, call WithOptions(zap.WithFatalHook(zapcore.WriteThenNoop))
-}
-
-/*
-	TestZapSugarLogger_Close
-*/
-
-func TestZapSugarLogger_Close(t *testing.T) {
-	t.Parallel()
-
-	mockWriter := createMockWriter(t)
-
-	logger := createLogger(t, mockWriter, logging.LevelInfo)
-
-	err := logger.Close()
-
-	require.NoErrorf(t, err, "error closing logger")
-}
-
-/*
-	Helpers
-*/
-
-func createMockWriter(t *testing.T) *mocks.MockWriter {
+// helper: extracts the last non-empty line from the buffer and parses it as JSON.
+func parseLastJSONLine(t *testing.T, buf *bytes.Buffer) map[string]any {
 	t.Helper()
 
-	mockWriter := mocks.NewMockWriter()
+	s := strings.TrimSpace(buf.String())
+	require.NotEmpty(t, s, "expected some log output, got empty buffer")
 
-	require.NotNilf(t, mockWriter, "NewMockWriter() return nil")
+	lines := strings.Split(s, "\n")
+	last := strings.TrimSpace(lines[len(lines)-1])
+	require.NotEmpty(t, last, "last log line is empty")
 
-	return mockWriter
+	var m map[string]any
+
+	err := json.Unmarshal([]byte(last), &m)
+	require.NoErrorf(t, err, "failed to unmarshal log line %q", last)
+
+	return m
 }
 
-func createLogger(
-	t *testing.T,
-	mockWriter io.Writer,
-	loggerLogLevel logging.LogLevel,
-) *logging.ZapSugarLogger {
-	t.Helper()
+func TestNewZapSugarLogger_InitializesAndLogs(t *testing.T) {
+	t.Parallel()
 
-	logger, err := logging.NewZapSugarLogger(loggerLogLevel, mockWriter, logging.FormatJSON)
+	var buf bytes.Buffer
 
-	require.NoErrorf(t, err, "NewZapSugarLogger() error = %v, want nil", err)
-	require.NotNilf(t, logger, "NewZapSugarLogger() logger = nil")
+	logger, err := logging.NewZapSugarLogger(logging.LevelInfo, &buf, logging.FormatJSON)
+	require.NoError(t, err)
+	require.NotNil(t, logger)
 
-	return logger
+	lineMap := parseLastJSONLine(t, &buf)
+
+	msg, ok := lineMap[logging.FieldBaseMessage].(string)
+	require.True(t, ok, "expected %q field to be a string", logging.FieldBaseMessage)
+
+	assert.Equal(t, "ZapSugar logger initialize is successful", msg)
+
+	_, ok = lineMap[logging.FieldBaseLevel]
+	assert.True(t, ok, "expected field %q (log level) to be present", logging.FieldBaseLevel)
+
+	_, ok = lineMap[logging.FieldBaseData]
+	assert.True(t, ok, "expected field %q (data) to be present", logging.FieldBaseData)
+}
+
+func TestZapSugarLogger_Debug_RespectsLogLevel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("logs_on_debug_level", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		logger, err := logging.NewZapSugarLogger(logging.LevelDebug, &buf, logging.FormatJSON)
+		require.NoError(t, err)
+
+		buf.Reset()
+
+		logger.Debug("debug-message", "foo", "bar")
+
+		lineMap := parseLastJSONLine(t, &buf)
+
+		msg, ok := lineMap[logging.FieldBaseMessage].(string)
+		require.True(t, ok)
+		assert.Equal(t, "debug-message", msg)
+
+		data, ok := lineMap[logging.FieldBaseData].(map[string]any)
+		require.True(t, ok, "expected %q to be object", logging.FieldBaseData)
+
+		got, ok := data["foo"]
+		assert.True(t, ok, "expected key %q in data", "foo")
+		assert.Equal(t, "bar", got)
+	})
+
+	t.Run("does_not_log_on_info_level", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		logger, err := logging.NewZapSugarLogger(logging.LevelInfo, &buf, logging.FormatJSON)
+		require.NoError(t, err)
+
+		buf.Reset()
+
+		logger.Debug("debug-message", "foo", "bar")
+
+		assert.Equal(t, 0, buf.Len(), "expected no output for Debug with LevelInfo")
+	})
+}
+
+func TestZapSugarLogger_Info_RespectsLogLevel(t *testing.T) {
+	t.Parallel()
+
+	t.Run("logs_when_level_allows", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		logger, err := logging.NewZapSugarLogger(logging.LevelInfo, &buf, logging.FormatJSON)
+		require.NoError(t, err)
+
+		buf.Reset()
+
+		logger.Info("hello", "foo", "bar")
+
+		lineMap := parseLastJSONLine(t, &buf)
+
+		msg, ok := lineMap[logging.FieldBaseMessage].(string)
+		require.True(t, ok)
+
+		assert.Equal(t, "hello", msg)
+
+		data, ok := lineMap[logging.FieldBaseData].(map[string]any)
+		require.True(t, ok, "expected %q to be object", logging.FieldBaseData)
+
+		got, ok := data["foo"]
+		assert.True(t, ok, "expected key %q in data", "foo")
+		assert.Equal(t, "bar", got)
+	})
+
+	t.Run("does_not_log_when_level_higher", func(t *testing.T) {
+		t.Parallel()
+
+		var buf bytes.Buffer
+
+		logger, err := logging.NewZapSugarLogger(logging.LevelWarn, &buf, logging.FormatJSON)
+		require.NoError(t, err)
+
+		buf.Reset()
+
+		logger.Info("hello", "foo", "bar")
+
+		assert.Equal(t, 0, buf.Len(), "expected no output for Info with LevelWarn")
+	})
+}
+
+func TestNewZapSugarLoggerWithFields_AddsCommonFields(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	loggerWithFields, err := logging.NewZapSugarLoggerWithFields(
+		logging.LevelInfo,
+		&buf,
+		logging.FormatJSON,
+		"app", "test-app",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, loggerWithFields)
+
+	buf.Reset()
+
+	loggerWithFields.Info("message")
+
+	m := parseLastJSONLine(t, &buf)
+
+	_, ok := m[logging.FieldBaseData]
+	assert.True(t, ok, "expected %q to be present", logging.FieldBaseData)
+
+	got, ok := m["app"]
+	assert.True(t, ok, "expected top-level field %q to be present", "app")
+	assert.Equal(t, "test-app", got)
+}
+
+func TestZapSugarLogger_With_AddsLabels(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	baseLogger, err := logging.NewZapSugarLogger(logging.LevelInfo, &buf, logging.FormatJSON)
+	require.NoError(t, err)
+
+	child := baseLogger.With("request_id", "req-123")
+	require.NotNil(t, child)
+
+	buf.Reset()
+
+	child.Info("child-log")
+
+	m := parseLastJSONLine(t, &buf)
+
+	got, ok := m["request_id"]
+	assert.True(t, ok, "expected request_id field to be present")
+	assert.Equal(t, "req-123", got)
+}
+
+func TestZapSugarLogger_Warn_LogsErrorAndData(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	logger, err := logging.NewZapSugarLogger(logging.LevelWarn, &buf, logging.FormatJSON)
+	require.NoError(t, err)
+
+	buf.Reset()
+
+	warnErr := errors.New("something went wrong")
+
+	logger.Warn("warn-message", warnErr, "foo", "bar")
+
+	assert.Contains(t, buf.String(), warnErr.Error(), "expected error to be present in log")
+}
+
+func TestZapSugarLogger_Error_LogsErrorAndData(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	logger, err := logging.NewZapSugarLogger(logging.LevelError, &buf, logging.FormatJSON)
+	require.NoError(t, err)
+
+	buf.Reset()
+
+	errVal := errors.New("db connection failed")
+
+	logger.Error("error-message", errVal, "foo", "bar")
+
+	assert.Contains(t, buf.String(), errVal.Error(), "expected error to be present in log")
+}
+
+func TestZapSugarLogger_Close_DoesNotError(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+
+	logger, err := logging.NewZapSugarLogger(logging.LevelInfo, &buf, logging.FormatJSON)
+	require.NoError(t, err)
+
+	err = logger.Close()
+	assert.NoError(t, err)
 }
