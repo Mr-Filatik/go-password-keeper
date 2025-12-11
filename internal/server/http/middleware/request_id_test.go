@@ -1,11 +1,13 @@
 package middleware_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,6 +21,18 @@ func run(
 	t.Helper()
 
 	var gotCtxVal, gotReqHdr string
+
+	//nolint:godox
+	// TODO: Replace with MockLogger.
+	logger, err := logging.NewZapSugarLogger(
+		logging.LevelInfo,
+		io.Discard,
+		logging.FormatJSON,
+	)
+	require.NoError(t, err)
+
+	ctx := logging.ToContext(req.Context(), logger)
+	req = req.WithContext(ctx)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if v, ok := r.Context().Value(middleware.CtxKeyXRequestID).(string); ok {

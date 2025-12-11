@@ -14,7 +14,7 @@ const HeaderRequestID = "X-Request-Id"
 
 // CtxKeyXRequestID - key for the HTTP header "X-Request-ID".
 //
-//nolint:gochecknoglobals // Migrate from platform to http
+//nolint:gochecknoglobals // Migrate from platform to http.
 var CtxKeyXRequestID = &context.CtxKey{Name: "x-request-id"}
 
 // RequestID creates a middleware for setting the request ID.
