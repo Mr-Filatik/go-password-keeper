@@ -3,13 +3,13 @@ package server
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/app"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 	"github.com/mr-filatik/go-password-keeper/internal/server/config"
@@ -24,27 +24,36 @@ var (
 )
 
 const (
+	projectName = "go_password_keeper"
+	appName     = "server"
+
 	shutdownTimeout = 5 * time.Second
 )
 
-// IServer - interface for all application servers.
-type IServer interface {
-	// Starting the server.
-	//
-	// Implements the platform.IStarter interface.
-	platform.IStarter
+// // IServer - interface for all application servers.
+// type IServer interface {
+// 	// Starting the server.
+// 	//
+// 	// Implements the platform.IStarter interface.
+// 	platform.IStarter
 
-	// Correct server shutdown.
-	//
-	// Implements the platform.IShutdowner interface.
-	platform.IShutdowner
-}
+// 	// Correct server shutdown.
+// 	//
+// 	// Implements the platform.IShutdowner interface.
+// 	platform.IShutdowner
+// }
 
 // Run starts the server application.
 //
 //nolint:funlen // Run() is the main function in which all components are initialized.
 func Run() {
-	logger, loggerErr := logging.NewZapSugarLogger(logging.LevelInfo, os.Stdout, logging.FormatJSON)
+	logger, loggerErr := logging.NewZapSugarLoggerWithFields(
+		logging.LevelWarn,
+		os.Stdout,
+		logging.FormatJSON,
+		"project", projectName,
+		"app", appName,
+	)
 	if loggerErr != nil {
 		panic(loggerErr)
 	}
@@ -57,9 +66,9 @@ func Run() {
 	}()
 
 	logger.Info("Application starting...",
-		"Build Version", buildVersion,
-		"Build Date", buildDate,
-		"Build Commit", buildCommit,
+		"build version", buildVersion,
+		"build date", buildDate,
+		"build commit", buildCommit,
 	)
 
 	// ===== Binding OS signals to context =====
@@ -72,59 +81,124 @@ func Run() {
 
 	appConfig := config.Initialize()
 
-	metricsProvider := metrics.CreateProvider("filatik_go_password_keeper", "server")
+	// ===== CREATING METRICS =====
 
-	httpServerConfig := http.ServerConfig{
-		Address:         appConfig.Address,
+	metricsProvider := metrics.CreateProvider("filatik", projectName, appName)
+
+	metricsProvider.App.SetBuildInfo(metrics.AppBuildLabel{
+		Version: buildVersion,
+		Date:    buildDate,
+		Commit:  buildCommit,
+	})
+
+	metricsProvider.App.SetDeployInfo(metrics.AppDeployLabel{
+		Number: "unknown",
+	})
+
+	// ===== DIAGNOSIC SERVER =====
+
+	diagnosticServer := diagnostic.NewServer(diagnostic.ServerConfig{
+		Address:         appConfig.DiagnosticAddress,
 		MetricsProvider: metricsProvider,
+	}, logger)
+
+	diagnosticServerStartErr := diagnosticServer.Start(exitCtx)
+	if diagnosticServerStartErr != nil {
+		logger.Error("Starting diagnostic server error", diagnosticServerStartErr)
+
+		return
 	}
 
-	var mainServer IServer = http.NewServer(httpServerConfig, logger)
+	// ===== CREATING SERVICES =====
 
-	mainServerStartErr := mainServer.Start(exitCtx)
-	if mainServerStartErr != nil {
-		logger.Error("Starting server error", mainServerStartErr)
+	mainServer := http.NewServer(
+		"main http server",
+		http.ServerConfig{
+			Address:         appConfig.Address,
+			MetricsProvider: metricsProvider,
+		}, logger)
+
+	addServer := http.NewServer(
+		"add http server",
+		http.ServerConfig{
+			Address:         ":31212",
+			MetricsProvider: metricsProvider,
+		}, logger)
+
+	// cacher := redis.NewCacher(redis.CacherConfig{
+	// 	ClientName:  "server",
+	// 	Address:     "redis:6379",
+	// 	DBNumber:    0,
+	// 	Username:    "",
+	// 	Password:    "",
+	// 	ConnTimeout: 2 * time.Second,
+	// }, logger)
+
+	apper := app.New(logger, metricsProvider, diagnosticServer)
+
+	apper.RegisterComponents(
+		addServer,
+		apper.WithParallelComponent(
+			mainServer,
+			apper.WithSequentialComponent(),
+		),
+	)
+
+	startErr := apper.Start(exitCtx)
+	if startErr != nil {
+		logger.Error("Starting services error", startErr)
 	}
 
-	logger.Info("Application starting is successful")
-
-	// redisCacherConfig := redis.CacherConfig{
-	// 	ClientName: "server",
-	// 	Address:    "redis:6379",
-	// 	DBNumber:   0,
-	// 	Username:   "",
-	// 	Password:   "",
-	// }
-
-	// cacher := redis.NewCacher(redisCacherConfig, logger)
-
-	// cacherErr := cacher.Start(exitCtx)
-	// if cacherErr != nil {
-	// 	logger.Error("Starting cacher error", cacherErr)
-	// }
-
-	// ===== Waiting for the stop signal =====
 	<-exitCtx.Done()
 
-	// ===== Start of server shutdown =====
-	logger.Info("Application shutdown starting...")
-
+	// Нужно понять, как сделать так, чтобы при получении сигнала не закрывать сразу
+	// А ждать это время
+	// И указать время для каждого конкретного компонента
 	shutdownCtx, cansel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cansel()
 
-	shutdownErr := mainServer.Shutdown(shutdownCtx)
+	shutdownErr := apper.Shutdown(shutdownCtx)
 	if shutdownErr != nil {
-		logger.Error("Shutdown server error", shutdownErr)
-
-		if errors.Is(shutdownErr, context.DeadlineExceeded) {
-			logger.Warn("Shutdown context deadline exceeded, forcing close...", nil)
-		}
-
-		closeErr := mainServer.Close()
-		if closeErr != nil {
-			logger.Error("Close server error", closeErr)
-		}
+		logger.Error("Stoping services error", shutdownErr)
 	}
 
-	logger.Info("Application shutdown is successful")
+	// // ===== STARTING SERVICES =====
+
+	// starter := platform.NewStarter(
+	// 	logger,
+	// 	platform.NewSequentialStarter( /*cacher, */ mainServer),
+	// 	metricsProvider,
+	// )
+
+	// startServicesErr := starter.Start(exitCtx)
+	// if startServicesErr != nil {
+	// 	logger.Error("Starting services error", startServicesErr)
+
+	// 	exitFn()
+	// 	//return
+	// }
+
+	// logger.Info("Application starting is successful")
+
+	// // ===== Waiting for the stop signal =====
+	// <-exitCtx.Done()
+
+	// // ===== Start of server shutdown =====
+	// shutdownCtx, cansel := context.WithTimeout(context.Background(), shutdownTimeout)
+	// defer cansel()
+
+	// // ===== STOPPING SERVICES =====
+
+	// stopper := platform.NewStopper(
+	// 	logger,
+	// 	platform.NewSequentialStopper(logger, mainServer /*cacher, */),
+	// 	metricsProvider,
+	// 	diagnosticServer,
+	// )
+
+	// // для diagnosticServer shutdownCtx не нужен, нужно дополнительно
+	// stopServicesErr := stopper.Shutdown(shutdownCtx)
+	// if stopServicesErr != nil {
+	// 	logger.Error("Stoppping services error", startServicesErr)
+	// }
 }

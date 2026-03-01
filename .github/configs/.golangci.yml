@@ -228,6 +228,7 @@ linters:
     # usetesting:
     varnamelen:
       ignore-names: # Default: []
+        - ok # standard variable name
         - tt # using in table driven tests
       ignore-decls: # Default: []
         - fs *flag.FlagSet # using in configs
@@ -246,6 +247,7 @@ linters:
       - path: _test\.go
         linters:
           - dupl
+          - err113
       - path: _test\.go
         linters:
           - funlen

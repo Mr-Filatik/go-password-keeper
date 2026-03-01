@@ -33,3 +33,11 @@ func FromContext(ctx context.Context) Logger {
 
 	return logger
 }
+
+func Info(ctx context.Context, msg string) {
+	logger := FromContext(ctx)
+
+	if logger != nil {
+		logger.Info(msg)
+	}
+}

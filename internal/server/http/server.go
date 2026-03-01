@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -21,11 +22,16 @@ import (
 
 // Server - describes the structure of an HTTP server.
 type Server struct {
+	name string
+
 	router          *chi.Mux
 	server          *http.Server
 	metricsProvider *metrics.Provider
 	logger          logging.Logger
 	address         string
+
+	mu      sync.Mutex
+	started bool
 }
 
 // ServerConfig - HTTP server configuration.
@@ -42,12 +48,13 @@ const (
 )
 
 // NewServer - creates a new HTTP server instance.
-func NewServer(conf ServerConfig, logger logging.Logger) *Server {
-	logger.Info("Server creating...")
+func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
+	logger.Info("Server creating...", "address", conf.Address)
 
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
+		name:            name,
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
 		logger:          logger,
@@ -81,12 +88,27 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 	return srvr
 }
 
+func (s *Server) GetName() string {
+	return s.name
+}
+
 // Start - starting the server.
 //
 // Implements the server.IServer interface.
 func (s *Server) Start(ctx context.Context) error {
+	s.logger.Warn("Starting...", nil, "component", s.GetName())
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.started {
+		s.logger.Warn("Server already started", nil)
+
+		return nil
+	}
+
 	s.logger.Info(
-		"Server starting...",
+		"Starting HTTP server...",
 		"address", s.address,
 	)
 
@@ -107,6 +129,8 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.logger.Info("Server start is successful")
 
+	s.started = true
+
 	return nil
 }
 
@@ -114,6 +138,17 @@ func (s *Server) Start(ctx context.Context) error {
 //
 // Implements the server.IServer interface.
 func (s *Server) Shutdown(ctx context.Context) error {
+	s.logger.Warn("Shutdowning...", nil, "component", s.GetName())
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.started {
+		s.logger.Warn("Server not be started and not be stopped", nil)
+
+		return nil
+	}
+
 	s.logger.Info("Server shutdown starting...")
 
 	err := s.server.Shutdown(ctx)
@@ -123,21 +158,36 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	s.logger.Info("Server shutdown is successful")
 
+	s.started = false
+
 	return nil
 }
 
-// Close - server shuts down.
+// Stop - server shuts down.
 //
 // Implements the server.IServer interface.
-func (s *Server) Close() error {
-	s.logger.Info("Server close starting...")
+func (s *Server) Stop() error {
+	s.logger.Warn("Stoping...", nil, "component", s.GetName())
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if !s.started {
+		s.logger.Warn("Server not be started and not be stopped", nil)
+
+		return nil
+	}
+
+	s.logger.Info("Server stop starting...")
 
 	err := s.server.Close()
 	if err != nil {
-		return fmt.Errorf("server close: %w", err)
+		return fmt.Errorf("server stop: %w", err)
 	}
 
-	s.logger.Info("Server close is successful")
+	s.logger.Info("Server stop is successful")
+
+	s.started = false
 
 	return nil
 }
@@ -148,10 +198,15 @@ func routeFromChiContext(r *http.Request) string {
 
 func (s *Server) registerMiddlewares() {
 	s.router.Use(
-		middleware.Recover(s.logger),
-		middleware.RequestID(),
+		// middleware.Recover(s.logger), // сделать глобальный recover???
+		middleware.InjectLogger(s.logger),
+		middleware.RequestID(), // простой и не паникует
+		// middleware.Limiter(...), // limiter: дешёво отстреливаем лишнее, защищает от DDoS / флудеров вообще.
+		// middleware.LimiterUserID(...), // Пользовательский (по user_id) — уже после Auth, в защищённой группе.
+		middleware.Recover(),
+		// auth после recover, т.к. тут поход в базу, но ниже логинга, т.к.
+		// он может положить user_id в контекст
 		middleware.Logging(
-			s.logger,
 			middleware.LoggingOpts{
 				EnableRequestBodyLogging:  false,
 				EnableResponseBodyLogging: false,
@@ -166,13 +221,20 @@ func (s *Server) registerMiddlewares() {
 		),
 	)
 
+	// Example:
+	// s.router.Group(func(r chi.Router) {
+	//     r.Use(middleware.Auth(authService, authOpts))
+
+	//     r.Get("/me", getProfileHandler)
+	//     r.Get("/orders", listOrdersHandler)
+	//     r.Post("/orders", createOrderHandler)
+	// })
+
 	s.server.Handler = s.router
 }
 
 func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
-
-	metrics.RegisterHandler(s.router)
 
 	s.router.Handle("/swagger/*", httpSwagger.WrapHandler)
 

@@ -89,6 +89,10 @@ func NewSequentialStarter(services ...IStarter) *SequentialStarter {
 	}
 }
 
+func (s *SequentialStarter) GetServices() []IStarter {
+	return s.services
+}
+
 // Start initiates a sequential start of components.
 //
 // Parameters:
@@ -119,6 +123,10 @@ func NewParallelStarter(services ...IStarter) *ParallelStarter {
 	return &ParallelStarter{
 		services: services,
 	}
+}
+
+func (s *ParallelStarter) GetServices() []IStarter {
+	return s.services
 }
 
 // Start initiates parallel start of components.

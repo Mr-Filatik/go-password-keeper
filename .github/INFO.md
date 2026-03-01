@@ -41,14 +41,15 @@ The following linters are either disabled or have had their settings changed:
             - "github.com/mr-filatik/go-password-keeper/internal/server"
   ```
 
-* ⚠️ `dupl` - exception added
+* ⚠️ `dupl` and `err113` - exception added
 
-  An exception has been added to tests that removes the check for code duplication. More details in the [documentation](https://golangci-lint.run/docs/configuration/file/#linters-configuration).
+  An exception has been added to tests that removes the check for code duplication and dynamic error generation. More details in the [documentation](https://golangci-lint.run/docs/configuration/file/#linters-configuration).
 
   ```yml
       - path: _test\.go
         linters:
           - dupl
+          - err113
   ```
 
 * ⚠️ `exhaustruct` - settings changed
@@ -93,6 +94,7 @@ The following linters are either disabled or have had their settings changed:
   ```yml
     varnamelen:
       ignore-names: # Default: []
+        - ok # standard variable name
         - tt # using in table driven tests
       ignore-decls: # Default: []
         - fs *flag.FlagSet # using in configs
