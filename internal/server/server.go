@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform/app"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/caching/redis"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
@@ -102,6 +103,7 @@ func Run() {
 		MetricsProvider: metricsProvider,
 	}, logger)
 
+	// внести запуск сервера внурь app
 	diagnosticServerStartErr := diagnosticServer.Start(exitCtx)
 	if diagnosticServerStartErr != nil {
 		logger.Error("Starting diagnostic server error", diagnosticServerStartErr)
@@ -116,35 +118,39 @@ func Run() {
 		http.ServerConfig{
 			Address:         appConfig.Address,
 			MetricsProvider: metricsProvider,
-		}, logger)
+		}, logger.With("component", "main http server")) // можно вынести внутрь
 
 	addServer := http.NewServer(
 		"add http server",
 		http.ServerConfig{
 			Address:         ":31212",
 			MetricsProvider: metricsProvider,
-		}, logger)
+		}, logger.With("component", "add http server")) // можно вынести внутрь
 
-	// cacher := redis.NewCacher(redis.CacherConfig{
-	// 	ClientName:  "server",
-	// 	Address:     "redis:6379",
-	// 	DBNumber:    0,
-	// 	Username:    "",
-	// 	Password:    "",
-	// 	ConnTimeout: 2 * time.Second,
-	// }, logger)
+	cacher := redis.NewCacher("redis cacher",
+		redis.CacherConfig{
+			ClientName:  "server",
+			Address:     ":6379", // "redis:6379",
+			DBNumber:    0,
+			Username:    "",
+			Password:    "",
+			ConnTimeout: 2 * time.Second,
+		}, logger.With("component", "redis cacher")) // можно вынести внутрь
 
-	apper := app.New(logger, metricsProvider, diagnosticServer)
+	// ===== APP RUN =====
 
-	apper.RegisterComponents(
+	app := app.New(logger, metricsProvider, diagnosticServer)
+
+	app.RegisterComponents(
+		cacher,
 		addServer,
-		apper.WithParallelComponent(
+		app.WithParallelComponent(
 			mainServer,
-			apper.WithSequentialComponent(),
+			app.WithSequentialComponent(),
 		),
 	)
 
-	startErr := apper.Start(exitCtx)
+	startErr := app.Start(exitCtx)
 	if startErr != nil {
 		logger.Error("Starting services error", startErr)
 	}
@@ -157,48 +163,8 @@ func Run() {
 	shutdownCtx, cansel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cansel()
 
-	shutdownErr := apper.Shutdown(shutdownCtx)
+	shutdownErr := app.Shutdown(shutdownCtx)
 	if shutdownErr != nil {
 		logger.Error("Stoping services error", shutdownErr)
 	}
-
-	// // ===== STARTING SERVICES =====
-
-	// starter := platform.NewStarter(
-	// 	logger,
-	// 	platform.NewSequentialStarter( /*cacher, */ mainServer),
-	// 	metricsProvider,
-	// )
-
-	// startServicesErr := starter.Start(exitCtx)
-	// if startServicesErr != nil {
-	// 	logger.Error("Starting services error", startServicesErr)
-
-	// 	exitFn()
-	// 	//return
-	// }
-
-	// logger.Info("Application starting is successful")
-
-	// // ===== Waiting for the stop signal =====
-	// <-exitCtx.Done()
-
-	// // ===== Start of server shutdown =====
-	// shutdownCtx, cansel := context.WithTimeout(context.Background(), shutdownTimeout)
-	// defer cansel()
-
-	// // ===== STOPPING SERVICES =====
-
-	// stopper := platform.NewStopper(
-	// 	logger,
-	// 	platform.NewSequentialStopper(logger, mainServer /*cacher, */),
-	// 	metricsProvider,
-	// 	diagnosticServer,
-	// )
-
-	// // для diagnosticServer shutdownCtx не нужен, нужно дополнительно
-	// stopServicesErr := stopper.Shutdown(shutdownCtx)
-	// if stopServicesErr != nil {
-	// 	logger.Error("Stoppping services error", startServicesErr)
-	// }
 }

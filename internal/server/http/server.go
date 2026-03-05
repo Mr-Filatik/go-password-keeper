@@ -96,7 +96,7 @@ func (s *Server) GetName() string {
 //
 // Implements the server.IServer interface.
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Warn("Starting...", nil, "component", s.GetName())
+	s.logger.Info("Starting...", nil, "component", s.GetName())
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

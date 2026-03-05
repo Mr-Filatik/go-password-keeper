@@ -19,16 +19,25 @@ type App struct {
 	mainComponent IComponent
 	metrProv      *metrics.Provider
 	diagServer    *diagnostic.Server
+
+	stopLaunchingOnError bool
 }
 
 // New creates an instance of the App structure.
-func New(logger logging.Logger, metrProv *metrics.Provider, diagServer *diagnostic.Server) *App {
-	return &App{
-		logger:        logger,
-		mainComponent: &nopComponent{},
-		metrProv:      metrProv,
-		diagServer:    diagServer,
+func New(logger logging.Logger, metrProv *metrics.Provider, diagServer *diagnostic.Server, opts ...Option) *App {
+	app := &App{
+		logger:               logger,
+		mainComponent:        &nopComponent{logger},
+		metrProv:             metrProv,
+		diagServer:           diagServer,
+		stopLaunchingOnError: false,
 	}
+
+	for _, opt := range opts {
+		opt(app)
+	}
+
+	return app
 }
 
 // RegisterComponents registers the specified components.
@@ -56,19 +65,16 @@ func (a *App) Start(ctx context.Context) error {
 
 	startErr := a.mainComponent.Start(ctx)
 	if startErr != nil {
-		a.metrProv.App.SetStartDuration(metrics.AppStartLabel{
-			Status: metrics.StartStatusFailed,
-		}, time.Since(startTime))
+		WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metrProv.App)
 
+		// точно ли прекращать запуск если получил первую ошибку
 		return fmt.Errorf("%w: %v", ErrComponentStarting, startErr.Error())
 	}
 
 	// нужно сделать так, чтобы каждый отдельный компонент писался в метрику
 	// но нужно исключать повторные запуски, компоненты паралел и сиквеншиал, само App
 	// они дублируют основную информацию
-	a.metrProv.App.SetStartDuration(metrics.AppStartLabel{
-		Status: metrics.StartStatusSuccess,
-	}, time.Since(startTime))
+	WriteStartMetric(a.mainComponent, metrics.StartStatusSuccess, startTime, a.metrProv.App)
 
 	return nil
 }
@@ -90,10 +96,9 @@ func (a *App) Shutdown(ctx context.Context) error {
 	if !ok {
 		stopErr := a.mainComponent.Stop()
 		if stopErr != nil {
-			a.metrProv.App.SetStopDuration(metrics.AppStopLabel{
-				Status: metrics.StopStatusFailed,
-			}, time.Since(stopTime))
+			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv.App)
 
+			// не выходить, нужно всё равно сервер останавливать
 			return fmt.Errorf("%w: %v", ErrComponentStoping, stopErr.Error())
 		}
 	}
@@ -101,24 +106,21 @@ func (a *App) Shutdown(ctx context.Context) error {
 	shutdownErr := shtService.Shutdown(ctx)
 	if shutdownErr != nil {
 		if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-			a.logger.Warn("Shutdown context deadline exceeded, forcing close...", nil)
+			a.logger.Warn("Shutdown context deadline exceeded, forcing close...", errors.New("app"))
 		} else {
 			a.logger.Error("Shutdown component error", shutdownErr)
 		}
 
 		stopErr := a.mainComponent.Stop()
 		if stopErr != nil {
-			a.metrProv.App.SetStopDuration(metrics.AppStopLabel{
-				Status: metrics.StopStatusFailed,
-			}, time.Since(stopTime))
+			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv.App)
 
+			// не выходить, нужно всё равно сервер останавливать
 			return fmt.Errorf("%w: %v", ErrComponentShutdowning, stopErr.Error())
 		}
 	}
 
-	a.metrProv.App.SetStopDuration(metrics.AppStopLabel{
-		Status: metrics.StopStatusSuccess,
-	}, time.Since(stopTime))
+	WriteStopMetric(a.mainComponent, metrics.StopStatusSuccess, stopTime, a.metrProv.App)
 
 	// logger.Info("Application shutdown is successful") // время
 
@@ -134,8 +136,9 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 	shutdownErr = a.diagServer.Shutdown(ctx)
 	if shutdownErr != nil {
+		// остановка diag сервера завязана на ctx основного приложения, а необходимо на основе отдельно ctx.
 		if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-			a.logger.Warn("Shutdown context deadline exceeded, forcing close...", nil)
+			a.logger.Warn("Shutdown context deadline exceeded, forcing close...", errors.New("diag"))
 		} else {
 			a.logger.Error("Shutdown component error", shutdownErr)
 		}

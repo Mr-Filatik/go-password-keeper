@@ -54,7 +54,7 @@ func NewAppMetrics(base BaseMetrics) *AppMetrics {
 			Subsystem:  subsystemName,
 			Name:       "start_duration_seconds",
 			Help:       "Duration of all services startup in seconds.",
-			LabelNames: []string{"status"},
+			LabelNames: []string{"status", "component"},
 		},
 	})
 
@@ -63,7 +63,7 @@ func NewAppMetrics(base BaseMetrics) *AppMetrics {
 			Subsystem:  subsystemName,
 			Name:       "stop_duration_seconds",
 			Help:       "Duration of stopping all services in seconds.",
-			LabelNames: []string{"status"},
+			LabelNames: []string{"status", "component"},
 		},
 	})
 
@@ -127,7 +127,8 @@ const (
 
 // AppStartLabel labels for describing information about the startup of application components.
 type AppStartLabel struct {
-	Status AppStartStatus // component startup status
+	Status    AppStartStatus // component startup status
+	Component string
 }
 
 // SetStartDuration sets the startup time of components by specifying labels.
@@ -137,7 +138,8 @@ type AppStartLabel struct {
 //   - duration time.Duration: labels.
 func (p *AppMetrics) SetStartDuration(labels AppStartLabel, duration time.Duration) {
 	lbls := prometheus.Labels{
-		"status": string(labels.Status),
+		"status":    string(labels.Status),
+		"component": labels.Component,
 	}
 
 	p.startInfoGauge.With(lbls).Add(duration.Seconds())
@@ -150,13 +152,17 @@ const (
 	// StopStatusSuccess - components stopped without errors.
 	StopStatusSuccess AppStopStatus = "success"
 
+	// Используется при ошибках при Shutdown, но при отсутствии ошибок в Close.
+	StopStatusNonSuccess AppStopStatus = "non-success"
+
 	// StopStatusFailed - components stopped with errors.
 	StopStatusFailed AppStopStatus = "failed"
 )
 
 // AppStopLabel labels for describing information about stopping application components.
 type AppStopLabel struct {
-	Status AppStopStatus // component stop status
+	Status    AppStopStatus // component stop status
+	Component string
 }
 
 // SetStopDuration sets the stop time of components by specifying labels.
@@ -166,7 +172,8 @@ type AppStopLabel struct {
 //   - duration time.Duration: labels.
 func (p *AppMetrics) SetStopDuration(labels AppStopLabel, duration time.Duration) {
 	lbls := prometheus.Labels{
-		"status": string(labels.Status),
+		"status":    string(labels.Status),
+		"component": labels.Component,
 	}
 
 	p.stopInfoGauge.With(lbls).Add(duration.Seconds())

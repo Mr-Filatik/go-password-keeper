@@ -163,6 +163,8 @@ func (l *ZapSugarLogger) Warn(msg string, err error, datas ...any) {
 
 	if err != nil {
 		l.log.Warnw(msg, FieldBaseError, err.Error(), FieldBaseData, datasToMap(datas...))
+
+		return
 	}
 
 	l.log.Warnw(msg, FieldBaseData, datasToMap(datas...))

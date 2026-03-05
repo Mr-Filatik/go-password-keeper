@@ -16,6 +16,7 @@ type Cacher struct {
 	logger logging.Logger
 	client *redis.Client
 	config CacherConfig
+	name   string
 }
 
 // CacherConfig describes the configuration for Cacher.
@@ -33,12 +34,13 @@ type CacherConfig struct {
 // Parameters:
 //   - conf CacherConfig: config;
 //   - logger logging.Logger: logger.
-func NewCacher(conf CacherConfig, logger logging.Logger) *Cacher {
+func NewCacher(name string, conf CacherConfig, logger logging.Logger) *Cacher {
 	logger.Info("Cacher creating...")
 
 	redis.SetLogger(adapter.NewLoggerAdapter(logger))
 
 	chr := &Cacher{
+		name:   name,
 		logger: logger,
 		client: nil,
 		config: conf,
@@ -47,6 +49,10 @@ func NewCacher(conf CacherConfig, logger logging.Logger) *Cacher {
 	logger.Info("Cacher create is successful")
 
 	return chr
+}
+
+func (c *Cacher) GetName() string {
+	return c.name
 }
 
 // Start - starting the cacher.
@@ -81,6 +87,19 @@ func (c *Cacher) Start(ctx context.Context) error {
 	c.logger.Info("Cacher start is successful")
 
 	return nil
+}
+
+func (c *Cacher) Shutdown(ctx context.Context) error {
+	cmd := c.client.Shutdown(ctx)
+	if cmd.Err() != nil {
+		return cmd.Err()
+	}
+
+	return nil
+}
+
+func (c *Cacher) Stop() error {
+	return c.client.Close()
 }
 
 // SetValue stores the value as a string by key.

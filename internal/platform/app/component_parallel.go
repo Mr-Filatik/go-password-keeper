@@ -5,24 +5,32 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
 type ParallelComponent struct { // Serial m.b.
 	services []IComponent
 	logger   logging.Logger
+	metrProv *metrics.Provider
+
+	stopLaunchingOnError bool
+	// isStopped bool // для понимания, всё ли остановлено
 }
 
 // WithParallelComponent combines components to start and stop in parallel.
 func (a *App) WithParallelComponent(services ...IComponent) *ParallelComponent {
 	if len(services) == 0 {
-		services = append(services, &nopComponent{})
+		services = append(services, &nopComponent{a.logger})
 	}
 
 	return &ParallelComponent{
-		services: services,
-		logger:   a.logger,
+		services:             services,
+		logger:               a.logger,
+		metrProv:             a.metrProv,
+		stopLaunchingOnError: a.stopLaunchingOnError,
 	}
 }
 
@@ -45,14 +53,22 @@ func (s *ParallelComponent) Start(ctx context.Context) error {
 		go func() {
 			defer wg.Done()
 
+			startTime := time.Now().UTC()
+
 			startErr := service.Start(ctx)
 			if startErr != nil {
 				mu.Lock()
+
+				// вынести статус в начало времени и просто заменить его в ошибке
+				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metrProv.App)
 
 				errs = append(errs, startErr)
 
 				mu.Unlock()
 			}
+
+			// вынести статус в начало времени и просто заменить его в ошибке
+			WriteStartMetric(service, metrics.StartStatusSuccess, startTime, s.metrProv.App)
 		}()
 	}
 
@@ -79,12 +95,14 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 		go func() {
 			defer wg.Done()
 
+			stopTime := time.Now().UTC()
+
 			shtService, ok := service.(IShutdowner)
 			if ok {
 				shutdownErr := shtService.Shutdown(ctx)
 				if shutdownErr != nil {
 					if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-						s.logger.Warn("Shutdown context deadline exceeded, forcing close...", nil)
+						s.logger.Warn("Shutdown context deadline exceeded, forcing close...", errors.New("par"))
 					} else {
 						s.logger.Error("Shutdown component error", shutdownErr)
 					}
@@ -94,6 +112,9 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 						s.logger.Error("Stoping service error", stopErr)
 
 						mu.Lock()
+
+						// вынести статус в начало времени и просто заменить его в ошибке
+						WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv.App)
 
 						errs = append(errs, stopErr)
 
@@ -107,11 +128,16 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 
 					mu.Lock()
 
+					// вынести статус в начало времени и просто заменить его в ошибке
+					WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv.App)
+
 					errs = append(errs, stopErr)
 
 					mu.Unlock()
 				}
 			}
+
+			WriteStopMetric(service, metrics.StopStatusSuccess, stopTime, s.metrProv.App)
 		}()
 	}
 
