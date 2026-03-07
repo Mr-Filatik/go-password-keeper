@@ -13,11 +13,15 @@ type nopComponent struct {
 }
 
 // GetName displays the name of the component.
+//
+// Implements the IComponent interface.
 func (c *nopComponent) GetName() string {
 	return "nop component"
 }
 
 // Start starts the component.
+//
+// Implements the IComponent interface.
 func (c *nopComponent) Start(_ context.Context) error {
 	err := fmt.Errorf("%w: nopComponent was launched", ErrComponentStarting)
 
@@ -27,6 +31,8 @@ func (c *nopComponent) Start(_ context.Context) error {
 }
 
 // Shutdown initiates a soft stop of the component.
+//
+// Implements the IComponent interface.
 func (c *nopComponent) Shutdown(_ context.Context) error {
 	err := fmt.Errorf("%w: nopComponent was soft stopped", ErrComponentShutdowning)
 
@@ -36,6 +42,8 @@ func (c *nopComponent) Shutdown(_ context.Context) error {
 }
 
 // Stop starts stopping the component.
+//
+// Implements the IComponent interface.
 func (c *nopComponent) Stop() error {
 	err := fmt.Errorf("%w: nopComponent has been stopped", ErrComponentStoping)
 

@@ -139,7 +139,9 @@ func Run() {
 
 	// ===== APP RUN =====
 
-	app := app.New(logger, metricsProvider, diagnosticServer)
+	app := app.New(logger, diagnosticServer,
+		app.WithStartStopMetrics(metricsProvider.App),
+	)
 
 	app.RegisterComponents(
 		cacher,
@@ -153,6 +155,8 @@ func Run() {
 	startErr := app.Start(exitCtx)
 	if startErr != nil {
 		logger.Error("Starting services error", startErr)
+
+		// exitCtx - close
 	}
 
 	<-exitCtx.Done()

@@ -2,6 +2,9 @@ package app
 
 import (
 	"context"
+	"time"
+
+	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
 // IComponent describes a universal interface for any application component.
@@ -36,4 +39,10 @@ type IShutdowner interface {
 type IStopper interface {
 	// Stop starts stopping the component.
 	Stop() error
+}
+
+// IAppMetrics describes an interface for metrics about component start and stop.
+type IAppMetrics interface {
+	SetStartDuration(labels metrics.AppStartLabel, duration time.Duration)
+	SetStopDuration(labels metrics.AppStopLabel, duration time.Duration)
 }

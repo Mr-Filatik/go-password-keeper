@@ -6,31 +6,31 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform"
 	slicehelpers "github.com/mr-filatik/go-password-keeper/internal/platform/helpers/slice"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
-type SequentialComponent struct { // Serial m.b.
-	services []IComponent
-	logger   logging.Logger
-	metrProv *metrics.Provider
+// SequentialComponent represents a special component used to sequentially start child components.
+// They are stopped in reverse order.
+type SequentialComponent struct {
+	components      []IComponent
+	metricsProvider IAppMetrics
 
-	stopLaunchingOnError bool
-	// isStopped bool // для понимания, всё ли остановлено
+	stopLaunchingOnError bool // whether to stop the launch when the first error is received
 }
 
-// WithSequentialComponent combines components to start and stop them sequentially.
+// WithSequentialComponent creates a component for sequentially starting and stopping elements.
+// If no components are passed, one nested nopComponent will be created.
+//
+// Created based on the App structure for sharing dependencies.
 func (a *App) WithSequentialComponent(services ...IComponent) *SequentialComponent {
 	if len(services) == 0 {
 		services = append(services, &nopComponent{a.logger})
 	}
 
 	return &SequentialComponent{
-		services:             services,
-		logger:               a.logger,
-		metrProv:             a.metrProv,
+		components:           services,
+		metricsProvider:      a.metrProv,
 		stopLaunchingOnError: a.stopLaunchingOnError,
 	}
 }
@@ -51,7 +51,7 @@ func (s *SequentialComponent) GetName() string {
 func (s *SequentialComponent) Start(ctx context.Context) error {
 	var errs []error
 
-	for _, service := range s.services {
+	for _, service := range s.components {
 		startTime := time.Now().UTC()
 		status := metrics.StartStatusSuccess
 
@@ -59,46 +59,50 @@ func (s *SequentialComponent) Start(ctx context.Context) error {
 		if startErr != nil {
 			status = metrics.StartStatusFailed
 
-			err := fmt.Errorf("error when starting services sequentially: %w", startErr)
-
 			if s.stopLaunchingOnError {
-				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metrProv.App)
+				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metricsProvider)
 
-				return err
+				return fmt.Errorf("starting sequential components: %w", startErr)
 			}
 
-			errs = append(errs, err)
+			errs = append(errs, startErr)
 		}
 
-		WriteStartMetric(service, status, startTime, s.metrProv.App)
+		WriteStartMetric(service, status, startTime, s.metricsProvider)
 	}
 
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return fmt.Errorf("starting sequential components: %w", errors.Join(errs...))
 	}
 
 	return nil
 }
 
-// Shutdown initiates a soft stop of the component.
+// Shutdown function initiates a soft stop of all components in the SequentialComponent.
+//
+// If an error occurs when calling Shutdown for an internal component
+// (or if it doesn't stop within the allotted time), Stop is called.
+//
+// Implements the IComponent interface.
 func (s *SequentialComponent) Shutdown(ctx context.Context) error {
 	var errs []error
 
-	reversed := slicehelpers.Reverse(s.services)
+	reversed := slicehelpers.Reverse(s.components)
 
 	for _, service := range reversed {
 		stopTime := time.Now().UTC()
 		status := metrics.StopStatusSuccess
 
-		// этот вариант лишний, т.к. IComponent всегда содержит метод Shutdown
-		// но можно удалить из IComponent Shutdown и оставить IStop, тогда Shutdown будет необязательным
-		shtService, ok := service.(platform.IShutdowner)
+		// In this implementation, this block is redundant because IComponent always contains the Shutdown function.
+		// We could make IComponent only IStopper and leave IShutdowner as a separate interface,
+		// but that idea seems strange.
+		shtService, ok := service.(IShutdowner)
 		if !ok {
 			stopErr := service.Stop()
 			if stopErr != nil {
 				status = metrics.StopStatusFailed
 
-				errs = append(errs, fmt.Errorf("error when stoping services sequentially: %w", stopErr))
+				errs = append(errs, stopErr)
 			}
 		}
 
@@ -106,46 +110,59 @@ func (s *SequentialComponent) Shutdown(ctx context.Context) error {
 		if shutdownErr != nil {
 			status = metrics.StopStatusNonSuccess
 
-			if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-				//s.logger.Warn("Shutdown context deadline exceeded, forcing close...", nil)
-			} else {
-				//s.logger.Error("Shutdown component error", shutdownErr)
-			}
+			err := shutdownErr
+
+			// if errors.Is(err, context.DeadlineExceeded) {
+			// Special error, the component did not manage to stop within the allotted time.
+			//
+			// It might also be possible to add an error with "soft stop is not implemented"
+			// in Shutdown when the component only has a Stop implementation.
+			// }
 
 			stopErr := service.Stop()
 			if stopErr != nil {
 				status = metrics.StopStatusFailed
 
-				errs = append(errs, fmt.Errorf("error when stoping services sequentially: %w", stopErr))
+				err = errors.Join(shutdownErr, stopErr)
 			}
+
+			errs = append(errs, err)
 		}
 
-		WriteStopMetric(service, status, stopTime, s.metrProv.App)
+		WriteStopMetric(service, status, stopTime, s.metricsProvider)
 	}
 
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return fmt.Errorf("shutdowning sequential components: %w", errors.Join(errs...))
 	}
 
 	return nil
 }
 
-// Stop starts stopping the component.
+// Stop function initiates stopping all components in the SequentialComponent.
+//
+// Implements the IComponent interface.
 func (s *SequentialComponent) Stop() error {
 	var errs []error
 
-	reversed := slicehelpers.Reverse(s.services)
+	reversed := slicehelpers.Reverse(s.components)
 
 	for _, service := range reversed {
+		stopTime := time.Now().UTC()
+		status := metrics.StopStatusSuccess
+
 		stopErr := service.Stop()
 		if stopErr != nil {
-			// возвращается на первой ошибке, норма ли это?
-			return fmt.Errorf("error when stoping services sequentially: %w", stopErr)
+			status = metrics.StopStatusFailed
+
+			errs = append(errs, stopErr)
 		}
+
+		WriteStopMetric(service, status, stopTime, s.metricsProvider)
 	}
 
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return fmt.Errorf("stopping sequential components: %w", errors.Join(errs...))
 	}
 
 	return nil

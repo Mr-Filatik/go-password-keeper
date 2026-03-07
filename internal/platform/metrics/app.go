@@ -152,7 +152,7 @@ const (
 	// StopStatusSuccess - components stopped without errors.
 	StopStatusSuccess AppStopStatus = "success"
 
-	// Используется при ошибках при Shutdown, но при отсутствии ошибок в Close.
+	// StopStatusNonSuccess is used when there are errors during Shutdown, but no errors during Close.
 	StopStatusNonSuccess AppStopStatus = "non-success"
 
 	// StopStatusFailed - components stopped with errors.

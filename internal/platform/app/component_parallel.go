@@ -14,7 +14,7 @@ import (
 type ParallelComponent struct { // Serial m.b.
 	services []IComponent
 	logger   logging.Logger
-	metrProv *metrics.Provider
+	metrProv IAppMetrics
 
 	stopLaunchingOnError bool
 	// isStopped bool // для понимания, всё ли остановлено
@@ -60,7 +60,7 @@ func (s *ParallelComponent) Start(ctx context.Context) error {
 				mu.Lock()
 
 				// вынести статус в начало времени и просто заменить его в ошибке
-				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metrProv.App)
+				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metrProv)
 
 				errs = append(errs, startErr)
 
@@ -68,7 +68,7 @@ func (s *ParallelComponent) Start(ctx context.Context) error {
 			}
 
 			// вынести статус в начало времени и просто заменить его в ошибке
-			WriteStartMetric(service, metrics.StartStatusSuccess, startTime, s.metrProv.App)
+			WriteStartMetric(service, metrics.StartStatusSuccess, startTime, s.metrProv)
 		}()
 	}
 
@@ -114,7 +114,7 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 						mu.Lock()
 
 						// вынести статус в начало времени и просто заменить его в ошибке
-						WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv.App)
+						WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv)
 
 						errs = append(errs, stopErr)
 
@@ -129,7 +129,7 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 					mu.Lock()
 
 					// вынести статус в начало времени и просто заменить его в ошибке
-					WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv.App)
+					WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv)
 
 					errs = append(errs, stopErr)
 
@@ -137,7 +137,7 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 				}
 			}
 
-			WriteStopMetric(service, metrics.StopStatusSuccess, stopTime, s.metrProv.App)
+			WriteStopMetric(service, metrics.StopStatusSuccess, stopTime, s.metrProv)
 		}()
 	}
 

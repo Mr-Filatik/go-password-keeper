@@ -17,18 +17,18 @@ import (
 type App struct {
 	logger        logging.Logger
 	mainComponent IComponent
-	metrProv      *metrics.Provider
+	metrProv      IAppMetrics
 	diagServer    *diagnostic.Server
 
 	stopLaunchingOnError bool
 }
 
 // New creates an instance of the App structure.
-func New(logger logging.Logger, metrProv *metrics.Provider, diagServer *diagnostic.Server, opts ...Option) *App {
+func New(logger logging.Logger, diagServer *diagnostic.Server, opts ...Option) *App {
 	app := &App{
 		logger:               logger,
 		mainComponent:        &nopComponent{logger},
-		metrProv:             metrProv,
+		metrProv:             nil,
 		diagServer:           diagServer,
 		stopLaunchingOnError: false,
 	}
@@ -65,7 +65,7 @@ func (a *App) Start(ctx context.Context) error {
 
 	startErr := a.mainComponent.Start(ctx)
 	if startErr != nil {
-		WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metrProv.App)
+		WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metrProv)
 
 		// точно ли прекращать запуск если получил первую ошибку
 		return fmt.Errorf("%w: %v", ErrComponentStarting, startErr.Error())
@@ -74,7 +74,7 @@ func (a *App) Start(ctx context.Context) error {
 	// нужно сделать так, чтобы каждый отдельный компонент писался в метрику
 	// но нужно исключать повторные запуски, компоненты паралел и сиквеншиал, само App
 	// они дублируют основную информацию
-	WriteStartMetric(a.mainComponent, metrics.StartStatusSuccess, startTime, a.metrProv.App)
+	WriteStartMetric(a.mainComponent, metrics.StartStatusSuccess, startTime, a.metrProv)
 
 	return nil
 }
@@ -96,7 +96,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 	if !ok {
 		stopErr := a.mainComponent.Stop()
 		if stopErr != nil {
-			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv.App)
+			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv)
 
 			// не выходить, нужно всё равно сервер останавливать
 			return fmt.Errorf("%w: %v", ErrComponentStoping, stopErr.Error())
@@ -113,14 +113,14 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 		stopErr := a.mainComponent.Stop()
 		if stopErr != nil {
-			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv.App)
+			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv)
 
 			// не выходить, нужно всё равно сервер останавливать
 			return fmt.Errorf("%w: %v", ErrComponentShutdowning, stopErr.Error())
 		}
 	}
 
-	WriteStopMetric(a.mainComponent, metrics.StopStatusSuccess, stopTime, a.metrProv.App)
+	WriteStopMetric(a.mainComponent, metrics.StopStatusSuccess, stopTime, a.metrProv)
 
 	// logger.Info("Application shutdown is successful") // время
 
@@ -151,11 +151,3 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 	return nil
 }
-
-// func (a *App) Stop() error {
-// 	a.logger.Debug("App stoping...")
-
-// 	// logic
-
-// 	return a.mainComponent.Stop()
-// }
