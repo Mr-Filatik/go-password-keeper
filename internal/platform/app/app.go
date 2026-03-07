@@ -15,12 +15,12 @@ import (
 
 // App provides a framework for starting and stopping application containers.
 type App struct {
-	logger        logging.Logger
-	mainComponent IComponent
-	metrProv      IAppMetrics
-	diagServer    *diagnostic.Server
+	logger          logging.Logger
+	mainComponent   IComponent
+	metricsProvider IAppMetrics
+	diagServer      *diagnostic.Server
 
-	stopLaunchingOnError bool
+	stopLaunchingOnError bool // whether to stop the launch when the first error is received
 }
 
 // New creates an instance of the App structure.
@@ -28,7 +28,7 @@ func New(logger logging.Logger, diagServer *diagnostic.Server, opts ...Option) *
 	app := &App{
 		logger:               logger,
 		mainComponent:        &nopComponent{logger},
-		metrProv:             nil,
+		metricsProvider:      nil,
 		diagServer:           diagServer,
 		stopLaunchingOnError: false,
 	}
@@ -59,90 +59,107 @@ func (a *App) RegisterMainComponent(mainComponent IComponent) {
 	a.mainComponent = mainComponent
 }
 
-// Start starts launching all application components, starting with the main one.
+// Start begins launching all application components, starting with the main component.
+//
+// The error is already logged within the function; the error can be used to terminate the application.
+// This may need to be reconsidered in the future; for now, it's noted in the comment.
 func (a *App) Start(ctx context.Context) error {
 	startTime := time.Now().UTC()
 
 	startErr := a.mainComponent.Start(ctx)
 	if startErr != nil {
-		WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metrProv)
+		WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metricsProvider)
 
-		// точно ли прекращать запуск если получил первую ошибку
-		return fmt.Errorf("%w: %v", ErrComponentStarting, startErr.Error())
+		err := fmt.Errorf("%w: %v", ErrComponentStarting, startErr.Error())
+		a.logger.Error("Start app components error", err)
+
+		return err
 	}
 
-	// нужно сделать так, чтобы каждый отдельный компонент писался в метрику
-	// но нужно исключать повторные запуски, компоненты паралел и сиквеншиал, само App
-	// они дублируют основную информацию
-	WriteStartMetric(a.mainComponent, metrics.StartStatusSuccess, startTime, a.metrProv)
+	WriteStartMetric(a.mainComponent, metrics.StartStatusSuccess, startTime, a.metricsProvider)
 
 	return nil
 }
 
-// Shutdown softly stops all application components, in reverse order.
+//nolint:gochecknoglobals
+var (
+	scrapeMetricsTimeout = 20 * time.Second       // What is the maximum waiting time for sending metrics?
+	scrapeMetricsRetry   = 500 * time.Millisecond // How often should I check what metrics were scrapped?
+)
+
+// Shutdown terminates the application and stops all functionality, starting with the main component.
 func (a *App) Shutdown(ctx context.Context) error {
-	a.logger.Debug("App shutdowning...")
+	var errs []error
 
 	stopTime := time.Now().UTC()
+	status := metrics.StopStatusSuccess
 	before := atomic.LoadUint64(&metrics.LastScrapeCount)
 
-	// var (
-	// 	wg   sync.WaitGroup
-	// 	mu   sync.Mutex
-	// 	errs []error
-	// )
-
+	// In this implementation, this block is redundant because IComponent always contains the Shutdown function.
+	// We could make IComponent only IStopper and leave IShutdowner as a separate interface,
+	// but that idea seems strange.
 	shtService, ok := a.mainComponent.(IShutdowner)
 	if !ok {
 		stopErr := a.mainComponent.Stop()
 		if stopErr != nil {
-			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv)
+			status = metrics.StopStatusFailed
 
-			// не выходить, нужно всё равно сервер останавливать
-			return fmt.Errorf("%w: %v", ErrComponentStoping, stopErr.Error())
+			errs = append(errs, fmt.Errorf("%w: %v", ErrComponentStoping, stopErr.Error()))
 		}
 	}
 
 	shutdownErr := shtService.Shutdown(ctx)
 	if shutdownErr != nil {
-		if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-			a.logger.Warn("Shutdown context deadline exceeded, forcing close...", errors.New("app"))
-		} else {
-			a.logger.Error("Shutdown component error", shutdownErr)
-		}
+		status = metrics.StopStatusNonSuccess
+
+		err := fmt.Errorf("%w: %v", ErrComponentShutdowning, shutdownErr.Error())
+
+		// if errors.Is(err, context.DeadlineExceeded) {
+		// Special error, the component did not manage to stop within the allotted time.
+		//
+		// It might also be possible to add an error with "soft stop is not implemented"
+		// in Shutdown when the component only has a Stop implementation.
+		// }
 
 		stopErr := a.mainComponent.Stop()
 		if stopErr != nil {
-			WriteStopMetric(a.mainComponent, metrics.StopStatusFailed, stopTime, a.metrProv)
+			status = metrics.StopStatusFailed
 
-			// не выходить, нужно всё равно сервер останавливать
-			return fmt.Errorf("%w: %v", ErrComponentShutdowning, stopErr.Error())
+			err = errors.Join(
+				fmt.Errorf("%w: %v", ErrComponentShutdowning, shutdownErr.Error()),
+				fmt.Errorf("%w: %v", ErrComponentStoping, stopErr.Error()),
+			)
 		}
+
+		errs = append(errs, err)
 	}
 
-	WriteStopMetric(a.mainComponent, metrics.StopStatusSuccess, stopTime, a.metrProv)
+	WriteStopMetric(a.mainComponent, status, stopTime, a.metricsProvider)
 
-	// logger.Info("Application shutdown is successful") // время
+	if len(errs) > 0 {
+		a.logger.Error("Shutdown app components error", errors.Join(errs...))
+	}
 
 	// wait for scrape metrics
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(scrapeMetricsTimeout)
 	for time.Now().Before(deadline) {
 		if atomic.LoadUint64(&metrics.LastScrapeCount) > before {
 			break
 		}
 
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(scrapeMetricsRetry)
 	}
 
+	// stopping the diag server is tied to the ctx of the main application,
+	// but it is necessary to do it on the basis of a separate ctx.
 	shutdownErr = a.diagServer.Shutdown(ctx)
 	if shutdownErr != nil {
-		// остановка diag сервера завязана на ctx основного приложения, а необходимо на основе отдельно ctx.
-		if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-			a.logger.Warn("Shutdown context deadline exceeded, forcing close...", errors.New("diag"))
-		} else {
-			a.logger.Error("Shutdown component error", shutdownErr)
-		}
-
+		// if errors.Is(err, context.DeadlineExceeded) {
+		// Special error, the component did not manage to stop within the allotted time.
+		//
+		// It might also be possible to add an error with "soft stop is not implemented"
+		// in Shutdown when the component only has a Stop implementation.
+		// }
 		closeErr := a.diagServer.Close()
 		if closeErr != nil {
 			a.logger.Error("Close server error", closeErr)

@@ -7,55 +7,65 @@ import (
 )
 
 // WriteStartMetric writes information about the component's start to metrics.
-func WriteStartMetric(comp IComponent, status metrics.AppStartStatus, startTime time.Time, metr IAppMetrics) {
-	if metr == nil {
+func WriteStartMetric(
+	component IComponent,
+	status metrics.AppStartStatus,
+	startTime time.Time,
+	metricsProvider IAppMetrics,
+) {
+	if metricsProvider == nil {
 		return
 	}
 
-	_, nok := comp.(*nopComponent)
+	_, nok := component.(*nopComponent)
 	if nok {
 		return
 	}
 
-	_, pok := comp.(*ParallelComponent)
+	_, pok := component.(*ParallelComponent)
 	if pok {
 		return
 	}
 
-	_, sok := comp.(*SequentialComponent)
+	_, sok := component.(*SequentialComponent)
 	if sok {
 		return
 	}
 
-	metr.SetStartDuration(metrics.AppStartLabel{
+	metricsProvider.SetStartDuration(metrics.AppStartLabel{
 		Status:    status,
-		Component: comp.GetName(),
+		Component: component.GetName(),
 	}, time.Since(startTime))
 }
 
 // WriteStopMetric writes information about the component's stop to metrics.
-func WriteStopMetric(comp IComponent, status metrics.AppStopStatus, startTime time.Time, metr IAppMetrics) {
-	if metr == nil {
+func WriteStopMetric(
+	component IComponent,
+	status metrics.AppStopStatus,
+	startTime time.Time,
+	metricsProvider IAppMetrics,
+) {
+	if metricsProvider == nil {
 		return
 	}
 
-	_, nok := comp.(*nopComponent)
+	_, nok := component.(*nopComponent)
 	if nok {
 		return
 	}
 
-	_, pok := comp.(*ParallelComponent)
+	_, pok := component.(*ParallelComponent)
 	if pok {
 		return
 	}
 
-	_, sok := comp.(*SequentialComponent)
+	_, sok := component.(*SequentialComponent)
 	if sok {
 		return
 	}
 
-	metr.SetStopDuration(metrics.AppStopLabel{
+	metricsProvider.SetStopDuration(metrics.AppStopLabel{
 		Status:    status,
-		Component: comp.GetName(),
+		Component: component.GetName(),
 	}, time.Since(startTime))
 }

@@ -30,7 +30,7 @@ func (a *App) WithSequentialComponent(services ...IComponent) *SequentialCompone
 
 	return &SequentialComponent{
 		components:           services,
-		metricsProvider:      a.metrProv,
+		metricsProvider:      a.metricsProvider,
 		stopLaunchingOnError: a.stopLaunchingOnError,
 	}
 }
@@ -60,7 +60,7 @@ func (s *SequentialComponent) Start(ctx context.Context) error {
 			status = metrics.StartStatusFailed
 
 			if s.stopLaunchingOnError {
-				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metricsProvider)
+				WriteStartMetric(service, status, startTime, s.metricsProvider)
 
 				return fmt.Errorf("starting sequential components: %w", startErr)
 			}

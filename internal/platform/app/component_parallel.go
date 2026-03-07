@@ -11,35 +11,39 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
-type ParallelComponent struct { // Serial m.b.
-	services []IComponent
-	logger   logging.Logger
-	metrProv IAppMetrics
-
-	stopLaunchingOnError bool
-	// isStopped bool // для понимания, всё ли остановлено
+// ParallelComponent represents a special component used to parallel start child components.
+type ParallelComponent struct {
+	components      []IComponent
+	logger          logging.Logger
+	metricsProvider IAppMetrics
 }
 
-// WithParallelComponent combines components to start and stop in parallel.
+// WithParallelComponent creates a component for parallel starting and stopping elements.
+// If no components are passed, one nested nopComponent will be created.
+//
+// Created based on the App structure for sharing dependencies.
 func (a *App) WithParallelComponent(services ...IComponent) *ParallelComponent {
 	if len(services) == 0 {
 		services = append(services, &nopComponent{a.logger})
 	}
 
 	return &ParallelComponent{
-		services:             services,
-		logger:               a.logger,
-		metrProv:             a.metrProv,
-		stopLaunchingOnError: a.stopLaunchingOnError,
+		components:      services,
+		logger:          a.logger,
+		metricsProvider: a.metricsProvider,
 	}
 }
 
 // GetName displays the name of the component.
+//
+// Implements the IComponent interface.
 func (s *ParallelComponent) GetName() string {
 	return "parallel component"
 }
 
-// Start starts the component.
+// Start begins launching all components within the ParallelComponent.
+//
+// Implements the IComponent interface.
 func (s *ParallelComponent) Start(ctx context.Context) error {
 	var (
 		wg   sync.WaitGroup
@@ -47,41 +51,47 @@ func (s *ParallelComponent) Start(ctx context.Context) error {
 		errs []error
 	)
 
-	wg.Add(len(s.services))
+	wg.Add(len(s.components))
 
-	for _, service := range s.services {
+	for _, service := range s.components {
 		go func() {
 			defer wg.Done()
 
 			startTime := time.Now().UTC()
+			status := metrics.StartStatusSuccess
 
 			startErr := service.Start(ctx)
 			if startErr != nil {
-				mu.Lock()
+				status = metrics.StartStatusFailed
 
-				// вынести статус в начало времени и просто заменить его в ошибке
-				WriteStartMetric(service, metrics.StartStatusFailed, startTime, s.metrProv)
+				mu.Lock()
 
 				errs = append(errs, startErr)
 
 				mu.Unlock()
 			}
 
-			// вынести статус в начало времени и просто заменить его в ошибке
-			WriteStartMetric(service, metrics.StartStatusSuccess, startTime, s.metrProv)
+			WriteStartMetric(service, status, startTime, s.metricsProvider)
 		}()
 	}
 
 	wg.Wait()
 
 	if len(errs) > 0 {
-		return fmt.Errorf("error when running services in parallel: %w", errors.Join(errs...))
+		return fmt.Errorf("starting parallel components: %w", errors.Join(errs...))
 	}
 
 	return nil
 }
 
-// Shutdown initiates a soft stop of the component.
+// Shutdown function initiates a soft stop of all components in the ParallelComponent.
+//
+// If an error occurs when calling Shutdown for an internal component
+// (or if it doesn't stop within the allotted time), Stop is called.
+//
+// Implements the IComponent interface.
+//
+//nolint:funlen // Comments in the function are still needed
 func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 	var (
 		wg   sync.WaitGroup
@@ -89,47 +99,25 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 		errs []error
 	)
 
-	wg.Add(len(s.services))
+	wg.Add(len(s.components))
 
-	for _, service := range s.services {
+	for _, service := range s.components {
 		go func() {
 			defer wg.Done()
 
 			stopTime := time.Now().UTC()
+			status := metrics.StopStatusSuccess
 
+			// In this implementation, this block is redundant because IComponent always contains the Shutdown function.
+			// We could make IComponent only IStopper and leave IShutdowner as a separate interface,
+			// but that idea seems strange.
 			shtService, ok := service.(IShutdowner)
-			if ok {
-				shutdownErr := shtService.Shutdown(ctx)
-				if shutdownErr != nil {
-					if errors.Is(shutdownErr, context.DeadlineExceeded) { // ErrServerClosed ??
-						s.logger.Warn("Shutdown context deadline exceeded, forcing close...", errors.New("par"))
-					} else {
-						s.logger.Error("Shutdown component error", shutdownErr)
-					}
-
-					stopErr := service.Stop()
-					if stopErr != nil {
-						s.logger.Error("Stoping service error", stopErr)
-
-						mu.Lock()
-
-						// вынести статус в начало времени и просто заменить его в ошибке
-						WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv)
-
-						errs = append(errs, stopErr)
-
-						mu.Unlock()
-					}
-				}
-			} else {
+			if !ok {
 				stopErr := service.Stop()
 				if stopErr != nil {
-					s.logger.Error("Stoping service error", stopErr)
+					status = metrics.StopStatusFailed
 
 					mu.Lock()
-
-					// вынести статус в начало времени и просто заменить его в ошибке
-					WriteStopMetric(service, metrics.StopStatusFailed, stopTime, s.metrProv)
 
 					errs = append(errs, stopErr)
 
@@ -137,22 +125,49 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 				}
 			}
 
-			WriteStopMetric(service, metrics.StopStatusSuccess, stopTime, s.metrProv)
+			shutdownErr := shtService.Shutdown(ctx)
+			if shutdownErr != nil {
+				status = metrics.StopStatusNonSuccess
+
+				err := shutdownErr
+
+				// if errors.Is(err, context.DeadlineExceeded) {
+				// Special error, the component did not manage to stop within the allotted time.
+				//
+				// It might also be possible to add an error with "soft stop is not implemented"
+				// in Shutdown when the component only has a Stop implementation.
+				// }
+
+				stopErr := service.Stop()
+				if stopErr != nil {
+					status = metrics.StopStatusFailed
+
+					err = errors.Join(shutdownErr, stopErr)
+				}
+
+				mu.Lock()
+
+				errs = append(errs, err)
+
+				mu.Unlock()
+			}
+
+			WriteStopMetric(service, status, stopTime, s.metricsProvider)
 		}()
 	}
 
 	wg.Wait()
 
-	s.logger.Warn("Shutdowning is done", nil, "component", s.GetName()) // TEMP
-
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return fmt.Errorf("shutdowning parallel components: %w", errors.Join(errs...))
 	}
 
 	return nil
 }
 
-// Stop starts stopping the component.
+// Stop function initiates stopping all components in the ParallelComponent.
+//
+// Implements the IComponent interface.
 func (s *ParallelComponent) Stop() error {
 	var (
 		wg   sync.WaitGroup
@@ -160,15 +175,18 @@ func (s *ParallelComponent) Stop() error {
 		errs []error
 	)
 
-	wg.Add(len(s.services))
+	wg.Add(len(s.components))
 
-	for _, service := range s.services {
+	for _, service := range s.components {
 		go func() {
 			defer wg.Done()
 
+			stopTime := time.Now().UTC()
+			status := metrics.StopStatusSuccess
+
 			stopErr := service.Stop()
 			if stopErr != nil {
-				s.logger.Error("Stoping service error", stopErr)
+				status = metrics.StopStatusFailed
 
 				mu.Lock()
 
@@ -176,13 +194,15 @@ func (s *ParallelComponent) Stop() error {
 
 				mu.Unlock()
 			}
+
+			WriteStopMetric(service, status, stopTime, s.metricsProvider)
 		}()
 	}
 
 	wg.Wait()
 
 	if len(errs) > 0 {
-		return errors.Join(errs...)
+		return fmt.Errorf("stopping parallel components: %w", errors.Join(errs...))
 	}
 
 	return nil

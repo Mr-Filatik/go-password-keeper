@@ -14,6 +14,6 @@ func WithStopLaunchingOnError() Option {
 // WithStartStopMetrics sets the provider for recording metrics about the start and stop of application components.
 func WithStartStopMetrics(metrProv IAppMetrics) Option {
 	return func(a *App) {
-		a.metrProv = metrProv
+		a.metricsProvider = metrProv
 	}
 }
