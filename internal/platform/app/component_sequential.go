@@ -38,7 +38,7 @@ func (a *App) WithSequentialComponent(services ...IComponent) *SequentialCompone
 // GetName displays the name of the component.
 //
 // Implements the IComponent interface.
-func (s *SequentialComponent) GetName() string {
+func (c *SequentialComponent) GetName() string {
 	return "sequential component"
 }
 
@@ -48,10 +48,10 @@ func (s *SequentialComponent) GetName() string {
 // then the component launch will be interrupted by the first error encountered.
 //
 // Implements the IComponent interface.
-func (s *SequentialComponent) Start(ctx context.Context) error {
+func (c *SequentialComponent) Start(ctx context.Context) error {
 	var errs []error
 
-	for _, service := range s.components {
+	for _, service := range c.components {
 		startTime := time.Now().UTC()
 		status := metrics.StartStatusSuccess
 
@@ -59,8 +59,8 @@ func (s *SequentialComponent) Start(ctx context.Context) error {
 		if startErr != nil {
 			status = metrics.StartStatusFailed
 
-			if s.stopLaunchingOnError {
-				WriteStartMetric(service, status, startTime, s.metricsProvider)
+			if c.stopLaunchingOnError {
+				WriteStartMetric(service, status, startTime, c.metricsProvider)
 
 				return fmt.Errorf("starting sequential components: %w", startErr)
 			}
@@ -68,7 +68,7 @@ func (s *SequentialComponent) Start(ctx context.Context) error {
 			errs = append(errs, startErr)
 		}
 
-		WriteStartMetric(service, status, startTime, s.metricsProvider)
+		WriteStartMetric(service, status, startTime, c.metricsProvider)
 	}
 
 	if len(errs) > 0 {
@@ -84,10 +84,10 @@ func (s *SequentialComponent) Start(ctx context.Context) error {
 // (or if it doesn't stop within the allotted time), Stop is called.
 //
 // Implements the IComponent interface.
-func (s *SequentialComponent) Shutdown(ctx context.Context) error {
+func (c *SequentialComponent) Shutdown(ctx context.Context) error {
 	var errs []error
 
-	reversed := slicehelpers.Reverse(s.components)
+	reversed := slicehelpers.Reverse(c.components)
 
 	for _, service := range reversed {
 		stopTime := time.Now().UTC()
@@ -129,7 +129,7 @@ func (s *SequentialComponent) Shutdown(ctx context.Context) error {
 			errs = append(errs, err)
 		}
 
-		WriteStopMetric(service, status, stopTime, s.metricsProvider)
+		WriteStopMetric(service, status, stopTime, c.metricsProvider)
 	}
 
 	if len(errs) > 0 {
@@ -142,10 +142,10 @@ func (s *SequentialComponent) Shutdown(ctx context.Context) error {
 // Stop function initiates stopping all components in the SequentialComponent.
 //
 // Implements the IComponent interface.
-func (s *SequentialComponent) Stop() error {
+func (c *SequentialComponent) Stop() error {
 	var errs []error
 
-	reversed := slicehelpers.Reverse(s.components)
+	reversed := slicehelpers.Reverse(c.components)
 
 	for _, service := range reversed {
 		stopTime := time.Now().UTC()
@@ -158,7 +158,7 @@ func (s *SequentialComponent) Stop() error {
 			errs = append(errs, stopErr)
 		}
 
-		WriteStopMetric(service, status, stopTime, s.metricsProvider)
+		WriteStopMetric(service, status, stopTime, c.metricsProvider)
 	}
 
 	if len(errs) > 0 {

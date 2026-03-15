@@ -37,23 +37,23 @@ func (a *App) WithParallelComponent(services ...IComponent) *ParallelComponent {
 // GetName displays the name of the component.
 //
 // Implements the IComponent interface.
-func (s *ParallelComponent) GetName() string {
+func (c *ParallelComponent) GetName() string {
 	return "parallel component"
 }
 
 // Start begins launching all components within the ParallelComponent.
 //
 // Implements the IComponent interface.
-func (s *ParallelComponent) Start(ctx context.Context) error {
+func (c *ParallelComponent) Start(ctx context.Context) error {
 	var (
 		wg   sync.WaitGroup
 		mu   sync.Mutex
 		errs []error
 	)
 
-	wg.Add(len(s.components))
+	wg.Add(len(c.components))
 
-	for _, service := range s.components {
+	for _, service := range c.components {
 		go func() {
 			defer wg.Done()
 
@@ -71,7 +71,7 @@ func (s *ParallelComponent) Start(ctx context.Context) error {
 				mu.Unlock()
 			}
 
-			WriteStartMetric(service, status, startTime, s.metricsProvider)
+			WriteStartMetric(service, status, startTime, c.metricsProvider)
 		}()
 	}
 
@@ -92,16 +92,16 @@ func (s *ParallelComponent) Start(ctx context.Context) error {
 // Implements the IComponent interface.
 //
 //nolint:funlen // Comments in the function are still needed
-func (s *ParallelComponent) Shutdown(ctx context.Context) error {
+func (c *ParallelComponent) Shutdown(ctx context.Context) error {
 	var (
 		wg   sync.WaitGroup
 		mu   sync.Mutex
 		errs []error
 	)
 
-	wg.Add(len(s.components))
+	wg.Add(len(c.components))
 
-	for _, service := range s.components {
+	for _, service := range c.components {
 		go func() {
 			defer wg.Done()
 
@@ -152,7 +152,7 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 				mu.Unlock()
 			}
 
-			WriteStopMetric(service, status, stopTime, s.metricsProvider)
+			WriteStopMetric(service, status, stopTime, c.metricsProvider)
 		}()
 	}
 
@@ -168,16 +168,16 @@ func (s *ParallelComponent) Shutdown(ctx context.Context) error {
 // Stop function initiates stopping all components in the ParallelComponent.
 //
 // Implements the IComponent interface.
-func (s *ParallelComponent) Stop() error {
+func (c *ParallelComponent) Stop() error {
 	var (
 		wg   sync.WaitGroup
 		mu   sync.Mutex
 		errs []error
 	)
 
-	wg.Add(len(s.components))
+	wg.Add(len(c.components))
 
-	for _, service := range s.components {
+	for _, service := range c.components {
 		go func() {
 			defer wg.Done()
 
@@ -195,7 +195,7 @@ func (s *ParallelComponent) Stop() error {
 				mu.Unlock()
 			}
 
-			WriteStopMetric(service, status, stopTime, s.metricsProvider)
+			WriteStopMetric(service, status, stopTime, c.metricsProvider)
 		}()
 	}
 

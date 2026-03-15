@@ -1,6 +1,23 @@
 // Package http contains a description of the HTTP server.
 package http
 
+//	@title					Password Keeper API
+//	@version				1.0
+//	@description.markdown	description
+//	@termsOfService			https://example.com/terms
+
+//	@contact.name	API Support
+//	@contact.email	support@passwordkeeper.com
+
+//	@license.name	Proprietary
+
+//	@host		localhost:8080
+//	@BasePath	/api/v1
+
+//	@securityDefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
+
 import (
 	"context"
 	"crypto/tls"
@@ -16,6 +33,7 @@ import (
 	_ "github.com/mr-filatik/go-password-keeper/docs/swagger/server" // Swagger docs registration in HTTP server.
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	"github.com/mr-filatik/go-password-keeper/internal/server/http/handler"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
@@ -77,6 +95,8 @@ func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
 			Protocols:                    nil,
 			HTTP2:                        nil,
 		},
+		started: false,
+		mu:      sync.Mutex{},
 	}
 
 	srvr.registerMiddlewares()
@@ -88,6 +108,10 @@ func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
 	return srvr
 }
 
+// GetName displays the name of the component.
+//
+// Implements the IComponent interface
+// from "github.com/mr-filatik/go-password-keeper/internal/platform/app" package.
 func (s *Server) GetName() string {
 	return s.name
 }
@@ -235,6 +259,7 @@ func (s *Server) registerMiddlewares() {
 
 func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
+	s.router.Get("/test", handler.Test())
 
 	s.router.Handle("/swagger/*", httpSwagger.WrapHandler)
 

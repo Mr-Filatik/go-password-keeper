@@ -1,3 +1,4 @@
+// Package diagnostic describes a diagnostic server for applications.
 package diagnostic
 
 import (
@@ -67,7 +68,7 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 		},
 	}
 
-	//srvr.registerMiddlewares()
+	// srvr.registerMiddlewares()
 
 	srvr.registerHandlers()
 
@@ -138,7 +139,7 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) registerHandlers() {
-	//metrics.RegisterHandler(s.router)
+	// metrics.RegisterHandler(s.router)
 	metrics.RegisterHandlerWithScrapeCount(s.router)
 
 	// // --- Health / ready ---

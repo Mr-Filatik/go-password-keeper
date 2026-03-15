@@ -34,10 +34,34 @@ func FromContext(ctx context.Context) Logger {
 	return logger
 }
 
-func Info(ctx context.Context, msg string) {
+func Debug(ctx context.Context, msg string, datas ...any) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
-		logger.Info(msg)
+		logger.Debug(msg, datas...)
+	}
+}
+
+func Info(ctx context.Context, msg string, datas ...any) {
+	logger := FromContext(ctx)
+
+	if logger != nil {
+		logger.Info(msg, datas...)
+	}
+}
+
+func Warn(ctx context.Context, msg string, err error, datas ...any) {
+	logger := FromContext(ctx)
+
+	if logger != nil {
+		logger.Warn(msg, err, datas...)
+	}
+}
+
+func Error(ctx context.Context, msg string, err error, datas ...any) {
+	logger := FromContext(ctx)
+
+	if logger != nil {
+		logger.Error(msg, err, datas...)
 	}
 }

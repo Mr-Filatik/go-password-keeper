@@ -110,3 +110,22 @@ package middleware
 // // 	w.WriteHeader(http.StatusTooManyRequests)
 // // 	_, _ = w.Write([]byte(`{"error":"too_many_requests"}`))
 // // }
+
+// func (s *Server) sendRateLimitError(w http.ResponseWriter, r *http.Request, retryAfter int) {
+//     response := ErrorResponse{
+//         Type:       "rate_limit_exceeded",
+//         Status:     http.StatusTooManyRequests,
+//         Title:      "Превышен лимит запросов",
+//         Detail:     "Слишком много запросов. Пожалуйста, подождите.",
+//         Timestamp:  time.Now().UTC(),
+//         RequestID:  r.Context().Value("requestID").(string),
+//         DocURL:     "https://api.example.com/errors/rate_limit_exceeded",
+//         RetryAfter: retryAfter,
+//     }
+
+//     w.Header().Set("Content-Type", "application/json; charset=utf-8")
+//     w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
+//     w.WriteHeader(http.StatusTooManyRequests)
+
+//     json.NewEncoder(w).Encode(response)
+// }

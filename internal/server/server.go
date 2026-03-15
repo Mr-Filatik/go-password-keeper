@@ -28,28 +28,16 @@ const (
 	projectName = "go_password_keeper"
 	appName     = "server"
 
-	shutdownTimeout = 5 * time.Second
+	shutdownTimeout   = 5 * time.Second
+	connectionTimeout = 2 * time.Second
 )
-
-// // IServer - interface for all application servers.
-// type IServer interface {
-// 	// Starting the server.
-// 	//
-// 	// Implements the platform.IStarter interface.
-// 	platform.IStarter
-
-// 	// Correct server shutdown.
-// 	//
-// 	// Implements the platform.IShutdowner interface.
-// 	platform.IShutdowner
-// }
 
 // Run starts the server application.
 //
 //nolint:funlen // Run() is the main function in which all components are initialized.
 func Run() {
 	logger, loggerErr := logging.NewZapSugarLoggerWithFields(
-		logging.LevelWarn,
+		logging.LevelInfo,
 		os.Stdout,
 		logging.FormatJSON,
 		"project", projectName,
@@ -134,7 +122,7 @@ func Run() {
 			DBNumber:    0,
 			Username:    "",
 			Password:    "",
-			ConnTimeout: 2 * time.Second,
+			ConnTimeout: connectionTimeout,
 		}, logger.With("component", "redis cacher")) // можно вынести внутрь
 
 	// ===== APP RUN =====

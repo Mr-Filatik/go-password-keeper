@@ -51,6 +51,10 @@ func NewCacher(name string, conf CacherConfig, logger logging.Logger) *Cacher {
 	return chr
 }
 
+// GetName displays the name of the component.
+//
+// Implements the IComponent interface
+// from "github.com/mr-filatik/go-password-keeper/internal/platform/app" package.
 func (c *Cacher) GetName() string {
 	return c.name
 }
@@ -89,17 +93,24 @@ func (c *Cacher) Start(ctx context.Context) error {
 	return nil
 }
 
+// Shutdown gracefully terminates server.
 func (c *Cacher) Shutdown(ctx context.Context) error {
 	cmd := c.client.Shutdown(ctx)
 	if cmd.Err() != nil {
-		return cmd.Err()
+		return fmt.Errorf("shutdown client: %w", cmd.Err())
 	}
 
 	return nil
 }
 
+// Stop - server shuts down.
 func (c *Cacher) Stop() error {
-	return c.client.Close()
+	err := c.client.Close()
+	if err != nil {
+		return fmt.Errorf("stop client: %w", err)
+	}
+
+	return nil
 }
 
 // SetValue stores the value as a string by key.
