@@ -1,5 +1,6 @@
 package dto
 
+// TestRequest - test handler request model.
 type TestRequest struct {
 	Number  int     `json:"number"        validate:"required,min=100,max=599"`
 	Message string  `json:"message"       validate:"required"`

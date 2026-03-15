@@ -92,7 +92,7 @@ func (c *LRUCache[T]) Set(key string, value T) {
 // corresponding entry is moved to the front of the list as the most
 // recently used item. Get is safe for concurrent use.
 //
-//nolint:ireturn // The cache must return the requested item
+//nolint:ireturn
 func (c *LRUCache[T]) Get(key string) (T, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -114,7 +114,7 @@ func (c *LRUCache[T]) Get(key string) (T, bool) {
 // from the cache if it exists. The LRU ordering is updated accordingly.
 // GetAndRemove is safe for concurrent use.
 //
-//nolint:ireturn // The cache must return the requested item
+//nolint:ireturn
 func (c *LRUCache[T]) GetAndRemove(key string) (T, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

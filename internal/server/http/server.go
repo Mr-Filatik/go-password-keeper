@@ -33,6 +33,7 @@ import (
 	_ "github.com/mr-filatik/go-password-keeper/docs/swagger/server" // Swagger docs registration in HTTP server.
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/handler"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -46,6 +47,7 @@ type Server struct {
 	server          *http.Server
 	metricsProvider *metrics.Provider
 	logger          logging.Logger
+	validator       validator.IValidator
 	address         string
 
 	mu      sync.Mutex
@@ -76,6 +78,7 @@ func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
 		logger:          logger,
+		validator:       validator.New(),
 		router:          chi.NewRouter(),
 		server: &http.Server{
 			Addr:                         conf.Address,
@@ -259,7 +262,7 @@ func (s *Server) registerMiddlewares() {
 
 func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
-	s.router.Post("/test", handler.Test())
+	s.router.Post("/test", handler.Test(s.validator))
 
 	s.router.Handle("/swagger/*", httpSwagger.WrapHandler)
 

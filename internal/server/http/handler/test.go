@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
 
@@ -19,11 +20,11 @@ import (
 //	@Failure		400		{object}	dto.ErrorResponse	"Invalid request format or validation error"
 //	@Failure		500		{object}	dto.ErrorResponse	"Internal server error"
 //	@Router			/test [post]
-func Test() http.HandlerFunc {
+func Test(validator validator.IValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		req, ok := getRequest[dto.TestRequest](w, r)
+		req, ok := getRequest[dto.TestRequest](w, r, validator) // refactor
 		if !ok {
 			return
 		}

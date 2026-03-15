@@ -3,155 +3,59 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"reflect"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
+
+const megaByte = 1024 * 1024 // 1MB
 
 func getRequest[T any](
 	w http.ResponseWriter,
 	r *http.Request,
-) (*T, bool) { // option.WithSkipValidate
-	// 1. Проверяем Content-Type
-	// 2. Ограничиваем размер тела (защита от DOS)
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576) // 1MB
-	defer r.Body.Close()
+	validator validator.IValidator,
+) (*T, bool) { // option.WithSkipValidate, option.WithValidator
+	ctx := r.Context()
+	// Checking Content-Type
+	r.Body = http.MaxBytesReader(w, r.Body, megaByte) // Limiting body size (DOS protection)
+
+	defer func() {
+		err := r.Body.Close()
+		if err != nil {
+			logging.Error(ctx, "Body close failed", err)
+		}
+	}()
 
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 
 	var req T
-	if err := decoder.Decode(&req); err != nil {
-		// s.logger.Error("Decode error", err)
-		//return nil, fmt.Errorf("%w: decode failed: %s", ErrRequestFormat, err.Error())
+
+	decodeErr := decoder.Decode(&req)
+	if decodeErr != nil {
 		sendError(w, r,
 			http.StatusBadRequest,
 			dto.RequestInvalidFormat, "Invalid model when requesting",
 			nil,
 		)
+
 		return &req, false
 	}
 
-	validate := validator.New()
-
-	err := validate.Struct(req)
+	problems, err := validator.Validate(req)
 	if err != nil {
-		// s.logger.Error("Validate error", err)
-		var details []string
-		// Проверяем тип ошибки
-		if validationErrors, ok := err.(validator.ValidationErrors); ok {
-			for _, fieldError := range validationErrors {
-				// fmt.Printf("Поле: %s\n", e.Field())
-				// fmt.Printf("Тэг: %s\n", e.Tag())
-				// fmt.Printf("Значение: %v\n", e.Value())
-				// fmt.Printf("Параметр: %s\n", e.Param())
-				// fmt.Printf("Тип: %v\n", e.Type())
-				// fmt.Printf("Ошибка: %s\n", e.Error())
-				// fmt.Println("---")
-				details = append(details, getValidationMessage(fieldError))
-			}
-		}
 		sendError(w, r,
 			http.StatusBadRequest,
 			dto.RequestValidationError, "Validation error(s)",
-			details,
+			problems,
 		)
+
 		return &req, false
-		//return nil, fmt.Errorf("%w: validation failed: %s", ErrRequestValidation, err.Error())
 	}
 
 	return &req, true
-}
-
-func getValidationMessage(e validator.FieldError) string {
-	switch e.Tag() {
-	case "required":
-		return fmt.Sprintf("Field '%s' is required", e.Field())
-
-	case "min":
-		if e.Kind() == reflect.String {
-			return fmt.Sprintf("Field '%s' must be at least %s characters long",
-				e.Field(), e.Param())
-		}
-
-		return fmt.Sprintf("Field '%s' must be >= %s", e.Field(), e.Param())
-
-	case "max":
-		if e.Kind() == reflect.String {
-			return fmt.Sprintf("Field '%s' must be at most %s characters long",
-				e.Field(), e.Param())
-		}
-
-		return fmt.Sprintf("Field '%s' must be <= %s", e.Field(), e.Param())
-
-	case "gte":
-		if e.Kind() == reflect.String {
-			return fmt.Sprintf("Field '%s' must be at least %s characters long",
-				e.Field(), e.Param())
-		}
-
-		return fmt.Sprintf("Field '%s' must be >= %s", e.Field(), e.Param())
-
-	case "lte":
-		if e.Kind() == reflect.String {
-			return fmt.Sprintf("Field '%s' must be at most %s characters long",
-				e.Field(), e.Param())
-		}
-
-		return fmt.Sprintf("Field '%s' must be <= %s", e.Field(), e.Param())
-
-	case "gt":
-		if e.Kind() == reflect.String {
-			return fmt.Sprintf("Field '%s' must be more than %s characters long",
-				e.Field(), e.Param())
-		}
-
-		return fmt.Sprintf("Field '%s' must be > %s", e.Field(), e.Param())
-
-	case "lt":
-		if e.Kind() == reflect.String {
-			return fmt.Sprintf("Field '%s' must be less than %s characters long",
-				e.Field(), e.Param())
-		}
-
-		return fmt.Sprintf("Field '%s' must be < %s", e.Field(), e.Param())
-
-	case "len":
-		return fmt.Sprintf("Field '%s' must be exactly %s characters long", e.Field(), e.Param())
-
-	case "numeric":
-		return fmt.Sprintf("Field '%s' must contain only numbers", e.Field())
-
-	case "alpha":
-		return fmt.Sprintf("Field '%s' must contain only letters", e.Field())
-
-	case "alphanum":
-		return fmt.Sprintf("Field '%s' must contain only letters and numbers", e.Field())
-
-	case "email":
-		return fmt.Sprintf("Field '%s' must be in email format", e.Field())
-
-	case "uuid":
-		return fmt.Sprintf("Field '%s' must be in UUID format", e.Field())
-
-	case "url":
-		return fmt.Sprintf("Field '%s' must be a valid URL", e.Field())
-
-	case "ip":
-		return fmt.Sprintf("Field '%s' must be a valid IP address", e.Field())
-
-	// case "oneof": return fmt.Sprintf("Field '%s' must be one of: %s", e.Field(), e.Param())
-
-	case "datetime":
-		return fmt.Sprintf("Field '%s' must be in format: %s", e.Field(), e.Param())
-
-	default:
-		return e.Error() // unknown tag
-	}
 }
 
 func sendError(
@@ -176,10 +80,12 @@ func sendError(
 
 	jsonResponse, marshalErr := json.Marshal(response)
 	if marshalErr != nil {
-		// Если не смогли даже ошибку сформировать - пишем plain text
-		// s.logger.Error("Failed to marshal error response", err)
-		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		// return
+		logging.Error(ctx, "Marshal response failed", marshalErr)
+
+		http.Error(w,
+			"An unexpected internal server error occurred", http.StatusInternalServerError)
+
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -201,10 +107,12 @@ func sendSuccess(
 
 	jsonResponse, marshalErr := json.Marshal(response)
 	if marshalErr != nil {
-		// Если не смогли даже ошибку сформировать - пишем plain text
-		// s.logger.Error("Failed to marshal error response", err)
-		// http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		// return
+		logging.Error(ctx, "Marshal response failed", marshalErr)
+
+		http.Error(w,
+			"An unexpected internal server error occurred", http.StatusInternalServerError)
+
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

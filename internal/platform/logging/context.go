@@ -34,6 +34,7 @@ func FromContext(ctx context.Context) Logger {
 	return logger
 }
 
+// Debug writes a log to the logger located in the context with the debug level.
 func Debug(ctx context.Context, msg string, datas ...any) {
 	logger := FromContext(ctx)
 
@@ -42,6 +43,7 @@ func Debug(ctx context.Context, msg string, datas ...any) {
 	}
 }
 
+// Info writes a log to the logger located in the context with the info level.
 func Info(ctx context.Context, msg string, datas ...any) {
 	logger := FromContext(ctx)
 
@@ -50,6 +52,7 @@ func Info(ctx context.Context, msg string, datas ...any) {
 	}
 }
 
+// Warn writes a log to the logger located in the context with the warning level.
 func Warn(ctx context.Context, msg string, err error, datas ...any) {
 	logger := FromContext(ctx)
 
@@ -58,10 +61,20 @@ func Warn(ctx context.Context, msg string, err error, datas ...any) {
 	}
 }
 
+// Error writes a log to the logger located in the context with the error level.
 func Error(ctx context.Context, msg string, err error, datas ...any) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
 		logger.Error(msg, err, datas...)
+	}
+}
+
+// Fatal writes a log to the logger located in the context with the fatal level.
+func Fatal(ctx context.Context, msg string, err error, datas ...any) {
+	logger := FromContext(ctx)
+
+	if logger != nil {
+		logger.Fatal(msg, err, datas...)
 	}
 }
