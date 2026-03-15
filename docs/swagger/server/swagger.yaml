@@ -1,4 +1,148 @@
+basePath: /api/v1
+definitions:
+  dto.Error:
+    properties:
+      details:
+        description: |-
+          Details - additional details about the error.
+
+          This is an optional parameter.
+        items:
+          type: string
+        type: array
+      id:
+        description: |-
+          ID - unique error identifier.
+
+          It is a required parameter.
+        type: string
+      message:
+        description: |-
+          Message - main error message.
+
+          It is a required parameter.
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/dto.ErrorType'
+        description: |-
+          ErrorType - machine-readable error type.
+
+          It is a required parameter.
+    required:
+    - id
+    - message
+    - type
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        allOf:
+        - $ref: '#/definitions/dto.Error'
+        description: |-
+          Error - error.
+
+          It is a required parameter.
+      statusCode:
+        description: |-
+          StatusCode - HTTP response status code.
+
+          It is a required parameter.
+        maximum: 599
+        minimum: 400
+        type: integer
+    required:
+    - error
+    - statusCode
+    type: object
+  dto.ErrorType:
+    enum:
+    - REQUEST_INVALID_FORMAT
+    - REQUEST_VALIDATION_ERROR
+    type: string
+    x-enum-varnames:
+    - RequestInvalidFormat
+    - RequestValidationError
+  dto.TestRequest:
+    properties:
+      mes:
+        type: string
+      message:
+        type: string
+      number:
+        maximum: 599
+        minimum: 100
+        type: integer
+    required:
+    - message
+    - number
+    type: object
+  dto.TestResponse:
+    properties:
+      mes:
+        type: string
+      message:
+        type: string
+      number:
+        maximum: 599
+        minimum: 100
+        type: integer
+    required:
+    - message
+    - number
+    type: object
+externalDocs:
+  description: OpenAPI
+  url: https://swagger.io/resources/open-api/
+host: localhost:8080
 info:
-  contact: {}
-paths: {}
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: "# Admin TAG API documentation\r\n\r\n**Admin** functions goes here
+    \r\n\r\nFor more info please read [link](/docs/readme.md)."
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API 1
+  version: "2.0"
+paths:
+  /test:
+    get:
+      consumes:
+      - application/json
+      description: Test handler for developing
+      parameters:
+      - description: Optional ping request with custom message
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.TestRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            $ref: '#/definitions/dto.TestResponse'
+        "400":
+          description: Invalid request format or validation error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Test handler
+      tags:
+      - developing
+securityDefinitions:
+  BasicAuth:
+    type: basic
 swagger: "2.0"
+tags:
+- description: "# Admin TAG NO API documentation\r\n\r\n**Admin** NO functions goes
+    here \r\n\r\nFor NO more info please read [link](/docs/readme.md)."
+  name: server_desc

@@ -14,7 +14,7 @@ set "GOBIN=%CD%\%BIN_DIR%"
 
 go install %SWAG_PACKAGE%
 
-%SWAG_CMD% init --dir ./internal/server/http --generalInfo server.go --output docs/swagger/server/ --parseInternal
+%SWAG_CMD% init -g internal/server/http/server_docs.go -o docs/swagger/server --md ./internal/server/http
 
 pause
 

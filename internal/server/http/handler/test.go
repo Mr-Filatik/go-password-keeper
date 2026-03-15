@@ -23,7 +23,7 @@ func Test() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		req, ok := getRequest[dto.PingRequest](w, r)
+		req, ok := getRequest[dto.TestRequest](w, r)
 		if !ok {
 			return
 		}
@@ -33,7 +33,7 @@ func Test() http.HandlerFunc {
 		req.Number++
 		req.Message += " new"
 
-		sendSuccess(w, r, &dto.PingResponse{
+		sendSuccess(w, r, &dto.TestResponse{
 			Number:  req.Number,
 			Message: req.Message,
 			Mes:     req.Mes,
