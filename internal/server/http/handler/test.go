@@ -14,11 +14,11 @@ import (
 //	@Tags			developing
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		dto.TestRequest		false	"Optional ping request with custom message"
+//	@Param			request	body		dto.TestRequest		true	"Request"
 //	@Success		200		{object}	dto.TestResponse	"Successful response"
 //	@Failure		400		{object}	dto.ErrorResponse	"Invalid request format or validation error"
 //	@Failure		500		{object}	dto.ErrorResponse	"Internal server error"
-//	@Router			/test [get]
+//	@Router			/test [post]
 func Test() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

@@ -259,7 +259,7 @@ func (s *Server) registerMiddlewares() {
 
 func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
-	s.router.Get("/test", handler.Test())
+	s.router.Post("/test", handler.Test())
 
 	s.router.Handle("/swagger/*", httpSwagger.WrapHandler)
 

@@ -9,23 +9,14 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "termsOfService": "http://swagger.io/terms/",
-        "contact": {
-            "name": "API Support",
-            "url": "http://www.swagger.io/support",
-            "email": "support@swagger.io"
-        },
-        "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
-        },
+        "contact": {},
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
         "/test": {
-            "get": {
+            "post": {
                 "description": "Test handler for developing",
                 "consumes": [
                     "application/json"
@@ -39,11 +30,12 @@ const docTemplate = `{
                 "summary": "Test handler",
                 "parameters": [
                     {
-                        "description": "Optional ping request with custom message",
+                        "description": "Request",
                         "name": "request",
                         "in": "body",
+                        "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.TestRequest"
+                            "$ref": "#/definitions/TestRequest"
                         }
                     }
                 ],
@@ -51,19 +43,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Successful response",
                         "schema": {
-                            "$ref": "#/definitions/dto.TestResponse"
+                            "$ref": "#/definitions/TestResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request format or validation error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal server error",
                         "schema": {
-                            "$ref": "#/definitions/dto.ErrorResponse"
+                            "$ref": "#/definitions/ErrorResponse"
                         }
                     }
                 }
@@ -71,7 +63,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.Error": {
+        "Error": {
             "type": "object",
             "required": [
                 "id",
@@ -98,13 +90,13 @@ const docTemplate = `{
                     "description": "ErrorType - machine-readable error type.\n\nIt is a required parameter.",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/dto.ErrorType"
+                            "$ref": "#/definitions/ErrorType"
                         }
                     ]
                 }
             }
         },
-        "dto.ErrorResponse": {
+        "ErrorResponse": {
             "type": "object",
             "required": [
                 "error",
@@ -115,7 +107,7 @@ const docTemplate = `{
                     "description": "Error - error.\n\nIt is a required parameter.",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/dto.Error"
+                            "$ref": "#/definitions/Error"
                         }
                     ]
                 },
@@ -127,7 +119,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ErrorType": {
+        "ErrorType": {
             "type": "string",
             "enum": [
                 "REQUEST_INVALID_FORMAT",
@@ -138,7 +130,7 @@ const docTemplate = `{
                 "RequestValidationError"
             ]
         },
-        "dto.TestRequest": {
+        "TestRequest": {
             "type": "object",
             "required": [
                 "message",
@@ -158,7 +150,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.TestResponse": {
+        "TestResponse": {
             "type": "object",
             "required": [
                 "message",
@@ -183,27 +175,17 @@ const docTemplate = `{
         "BasicAuth": {
             "type": "basic"
         }
-    },
-    "tags": [
-        {
-            "description": "# Admin TAG NO API documentation\r\n\r\n**Admin** NO functions goes here \r\n\r\nFor NO more info please read [link](/docs/readme.md).",
-            "name": "server_desc"
-        }
-    ],
-    "externalDocs": {
-        "description": "OpenAPI",
-        "url": "https://swagger.io/resources/open-api/"
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "2.0",
-	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	Version:          "1.0",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Swagger Example API 1",
-	Description:      "# Admin TAG API documentation\r\n\r\n**Admin** functions goes here \r\n\r\nFor more info please read [link](/docs/readme.md).",
+	Title:            "Server API",
+	Description:      "# go-password-keeper app\r\n\r\nLoading info...",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

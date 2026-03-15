@@ -14,7 +14,7 @@ type ErrorResponse struct {
 	//
 	// It is a required parameter.
 	Error Error `json:"error" validate:"required"`
-}
+} // @name ErrorResponse
 
 // Error describes detailed information about the error.
 type Error struct {
@@ -37,10 +37,10 @@ type Error struct {
 	//
 	// This is an optional parameter.
 	Details []string `json:"details,omitempty" validate:"omitempty"`
-}
+} // @name Error
 
 // ErrorType - machine-readable error type.
-type ErrorType string
+type ErrorType string // @name ErrorType
 
 const (
 	// RequestInvalidFormat - invalid request model format.

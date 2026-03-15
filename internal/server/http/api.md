@@ -1,5 +1,3 @@
-# Admin TAG API documentation
+# go-password-keeper app
 
-**Admin** functions goes here 
-
-For more info please read [link](/docs/readme.md).
+Loading info...
