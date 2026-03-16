@@ -264,7 +264,9 @@ func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
 	s.router.Post("/test", handler.Test(s.validator))
 
-	s.router.Handle("/swagger/*", httpSwagger.WrapHandler)
+	s.router.Handle("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("docs/swagger/server/doc.json"),
+	))
 
 	s.server.Handler = s.router
 }
