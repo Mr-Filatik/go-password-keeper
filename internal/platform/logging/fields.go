@@ -12,8 +12,13 @@ const (
 	FieldBaseError          = "error"     // Error.
 	FieldBaseErrorShort     = "err"       // Error.
 
-	FieldBaseData   = "data"   // Additional data not included in the message text.
-	FieldBaseCaller = "caller" // Code call location.
+	FieldBaseCaller     = "caller" // Code call location.
+	FieldBaseStackTrace = "stacktrace"
+
+	// Данные внутри приложения.
+	FieldBaseData = "data" // Additional data not included in the message text.
+	// Данные, которые передаются или принимаются откуда-то.
+	FieldBasePayload = "payload" // Additional data not included in the message text.
 )
 
 // Fields used for tracing.

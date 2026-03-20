@@ -69,7 +69,7 @@ const (
 
 // NewServer - creates a new HTTP server instance.
 func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
-	logger.Info("Server creating...", "address", conf.Address)
+	logger.Info("Server creating...") //"address", conf.Address
 
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
@@ -123,7 +123,7 @@ func (s *Server) GetName() string {
 //
 // Implements the server.IServer interface.
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("Starting...", nil, "component", s.GetName())
+	s.logger.Info("Starting...") // "component", s.GetName())
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -136,7 +136,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.logger.Info(
 		"Starting HTTP server...",
-		"address", s.address,
+		//"address", s.address,
 	)
 
 	s.server.BaseContext = func(_ net.Listener) context.Context {
@@ -165,7 +165,7 @@ func (s *Server) Start(ctx context.Context) error {
 //
 // Implements the server.IServer interface.
 func (s *Server) Shutdown(ctx context.Context) error {
-	s.logger.Warn("Shutdowning...", nil, "component", s.GetName())
+	s.logger.Warn("Shutdowning...", nil) //"component", s.GetName()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -194,7 +194,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 //
 // Implements the server.IServer interface.
 func (s *Server) Stop() error {
-	s.logger.Warn("Stoping...", nil, "component", s.GetName())
+	s.logger.Warn("Stoping...", nil) //"component", s.GetName()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -302,8 +302,8 @@ func (s *Server) validateRequestMethod(w http.ResponseWriter, current string, ne
 		s.logger.Error(
 			"Invalid request",
 			errInvalidRequestMethod,
-			"actual", current,
-			"expected", needed,
+			//"actual", current,
+			//"expected", needed,
 		)
 
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)

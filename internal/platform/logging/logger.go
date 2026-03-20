@@ -58,14 +58,14 @@ type Logger interface {
 	// Parameters:
 	//   - message: main log message;
 	//   - datas: additional information as a key-value pair.
-	Debug(message string, datas ...any)
+	Debug(message string, options ...FieldOption)
 
 	// Info logs the message and parameters with the info level.
 	//
 	// Parameters:
 	//   - message: main log message;
 	//   - datas: additional information as a key-value pair.
-	Info(message string, datas ...any)
+	Info(message string, options ...FieldOption)
 
 	// Warn logs a message and parameters with the warn level and a possible (non-critical) error.
 	//
@@ -73,7 +73,7 @@ type Logger interface {
 	//   - message: main log message;
 	//   - err: possible error;
 	//   - datas: additional information as a key-value pair.
-	Warn(message string, err error, datas ...any)
+	Warn(message string, err error, options ...FieldOption)
 
 	// Error logs a message and parameters with the error level and error.
 	//
@@ -81,7 +81,7 @@ type Logger interface {
 	//   - message: main log message;
 	//   - err: error;
 	//   - datas: additional information as a key-value pair.
-	Error(message string, err error, datas ...any)
+	Error(message string, err error, options ...FieldOption)
 
 	// Fatal logs a message and parameters with the fatal and critical error levels.
 	//
@@ -89,7 +89,7 @@ type Logger interface {
 	//   - message: main log message;
 	//   - err: critical error;
 	//   - datas: additional information as a key-value pair.
-	Fatal(message string, err error, datas ...any)
+	Fatal(message string, err error, options ...FieldOption)
 
 	// Close releases resources used by the logger.
 	//

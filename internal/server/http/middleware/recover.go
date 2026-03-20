@@ -4,7 +4,6 @@ package middleware
 import (
 	"errors"
 	"net/http"
-	"runtime/debug"
 	"strings"
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
@@ -26,10 +25,8 @@ func Recover() Middleware {
 
 					logger := logging.FromContext(r.Context())
 
-					logger.Error("HTTP Request-Response Recover", err,
-						"request_id", r.Header.Get(HeaderRequestID),
-						"callstack", string(debug.Stack()),
-					)
+					logger.Error("HTTP Request-Response Recover", err) //"request_id", r.Header.Get(HeaderRequestID),
+					//"callstack", string(debug.Stack()),
 
 					if strings.EqualFold(r.Header.Get("Connection"), "Upgrade") {
 						return

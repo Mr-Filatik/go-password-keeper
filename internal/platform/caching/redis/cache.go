@@ -65,8 +65,8 @@ func (c *Cacher) GetName() string {
 func (c *Cacher) Start(ctx context.Context) error {
 	c.logger.Info(
 		"Cacher starting...",
-		"address", c.config.Address,
-		"database", c.config.DBNumber,
+		//"address", c.config.Address,
+		//"database", c.config.DBNumber,
 	)
 
 	//nolint:exhaustruct // other options use the default value

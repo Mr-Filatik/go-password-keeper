@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	//"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
@@ -17,14 +17,14 @@ func getRequest[T any](
 	r *http.Request,
 	validator validator.IValidator,
 ) (*T, bool) { // option.WithSkipValidate, option.WithValidator
-	ctx := r.Context()
+	//ctx := r.Context()
 	// Checking Content-Type
 	r.Body = http.MaxBytesReader(w, r.Body, megaByte) // Limiting body size (DOS protection)
 
 	defer func() {
 		err := r.Body.Close()
 		if err != nil {
-			logging.Error(ctx, "Body close failed", err)
+			//logging.Error(ctx, "Body close failed", err)
 		}
 	}()
 
@@ -66,7 +66,7 @@ func sendError(
 	message string,
 	details []string,
 ) {
-	ctx := r.Context()
+	//ctx := r.Context()
 
 	response := &dto.ErrorResponse{
 		StatusCode: status,
@@ -80,7 +80,7 @@ func sendError(
 
 	jsonResponse, marshalErr := json.Marshal(response)
 	if marshalErr != nil {
-		logging.Error(ctx, "Marshal response failed", marshalErr)
+		//logging.Error(ctx, "Marshal response failed", marshalErr)
 
 		http.Error(w,
 			"An unexpected internal server error occurred", http.StatusInternalServerError)
@@ -94,7 +94,7 @@ func sendError(
 
 	_, writeErr := w.Write(jsonResponse)
 	if writeErr != nil {
-		logging.Error(ctx, "Failed to write error response", writeErr)
+		//logging.Error(ctx, "Failed to write error response", writeErr)
 	}
 }
 
@@ -103,11 +103,11 @@ func sendSuccess(
 	r *http.Request,
 	response any,
 ) {
-	ctx := r.Context()
+	//ctx := r.Context()
 
 	jsonResponse, marshalErr := json.Marshal(response)
 	if marshalErr != nil {
-		logging.Error(ctx, "Marshal response failed", marshalErr)
+		//logging.Error(ctx, "Marshal response failed", marshalErr)
 
 		http.Error(w,
 			"An unexpected internal server error occurred", http.StatusInternalServerError)
@@ -121,6 +121,6 @@ func sendSuccess(
 
 	_, writeErr := w.Write(jsonResponse)
 	if writeErr != nil {
-		logging.Error(ctx, "Failed to write error response", writeErr)
+		//logging.Error(ctx, "Failed to write error response", writeErr)
 	}
 }

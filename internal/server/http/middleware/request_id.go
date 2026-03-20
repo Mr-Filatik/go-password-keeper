@@ -29,12 +29,13 @@ func RequestID() Middleware {
 				r.Header.Set(HeaderRequestID, requestID)
 			}
 
-			ctx = context.WithValue(ctx, CtxKeyXRequestID, requestID)
+			//ctx = context.WithValue(ctx, CtxKeyXRequestID, requestID)
 
 			logger := logging.FromContext(ctx).With(logging.FieldRequestID, requestID)
 			ctx = logging.ToContext(ctx, logger)
 
 			w.Header().Set(HeaderRequestID, requestID)
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

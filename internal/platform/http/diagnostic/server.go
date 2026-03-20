@@ -83,7 +83,7 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Info(
 		"Server starting...",
-		"address", s.address,
+		//"address", s.address,
 	)
 
 	s.server.BaseContext = func(_ net.Listener) context.Context {

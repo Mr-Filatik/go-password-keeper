@@ -60,9 +60,8 @@ func Logging(options LoggingOpts) Middleware {
 
 		logger := logging.FromContext(reqObs.GetContext())
 
-		logger.Debug("HTTP Request-Response",
-			fields...,
-		)
+		logger.Debug("HTTP Request-Response") //fields...,
+
 	}
 
 	return func(next http.Handler) http.Handler {

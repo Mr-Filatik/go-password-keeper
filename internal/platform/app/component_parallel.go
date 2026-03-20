@@ -7,14 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
 // ParallelComponent represents a special component used to parallel start child components.
 type ParallelComponent struct {
 	components      []IComponent
-	logger          logging.Logger
 	metricsProvider IAppMetrics
 }
 
@@ -29,7 +27,6 @@ func (a *App) WithParallelComponent(services ...IComponent) *ParallelComponent {
 
 	return &ParallelComponent{
 		components:      services,
-		logger:          a.logger,
 		metricsProvider: a.metricsProvider,
 	}
 }

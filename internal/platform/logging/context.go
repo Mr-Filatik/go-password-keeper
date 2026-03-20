@@ -34,47 +34,55 @@ func FromContext(ctx context.Context) Logger {
 	return logger
 }
 
+// Можно сделать ещё метод такой, чтобы caller был везде верный.
+// Тогда надо запретить вызывать логгер напрямую. Но как, приватные поля?
+func DebugLogger(logger Logger, msg string, options ...FieldOption) {
+	if logger != nil {
+		logger.Debug(msg, options...)
+	}
+}
+
 // Debug writes a log to the logger located in the context with the debug level.
-func Debug(ctx context.Context, msg string, datas ...any) {
+func Debug(ctx context.Context, msg string, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
-		logger.Debug(msg, datas...)
+		logger.Debug(msg, options...)
 	}
 }
 
 // Info writes a log to the logger located in the context with the info level.
-func Info(ctx context.Context, msg string, datas ...any) {
+func Info(ctx context.Context, msg string, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
-		logger.Info(msg, datas...)
+		logger.Info(msg, options...)
 	}
 }
 
 // Warn writes a log to the logger located in the context with the warning level.
-func Warn(ctx context.Context, msg string, err error, datas ...any) {
+func Warn(ctx context.Context, msg string, err error, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
-		logger.Warn(msg, err, datas...)
+		logger.Warn(msg, err, options...)
 	}
 }
 
 // Error writes a log to the logger located in the context with the error level.
-func Error(ctx context.Context, msg string, err error, datas ...any) {
+func Error(ctx context.Context, msg string, err error, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
-		logger.Error(msg, err, datas...)
+		logger.Error(msg, err, options...)
 	}
 }
 
 // Fatal writes a log to the logger located in the context with the fatal level.
-func Fatal(ctx context.Context, msg string, err error, datas ...any) {
+func Fatal(ctx context.Context, msg string, err error, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
-		logger.Fatal(msg, err, datas...)
+		logger.Fatal(msg, err, options...)
 	}
 }

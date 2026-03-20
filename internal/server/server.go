@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -54,11 +55,9 @@ func Run() {
 		}
 	}()
 
-	logger.Info("Application starting...",
-		"build version", buildVersion,
-		"build date", buildDate,
-		"build commit", buildCommit,
-	)
+	logger.Info("Application starting...") //"build version", buildVersion,
+	//"build date", buildDate,
+	//"build commit", buildCommit,
 
 	// ===== Binding OS signals to context =====
 	exitCtx, exitFn := signal.NotifyContext(
@@ -69,6 +68,17 @@ func Run() {
 	defer exitFn()
 
 	appConfig := config.Initialize()
+
+	exitCtx = logging.ToContext(exitCtx, logger)
+
+	logging.Error(exitCtx, "TEST 1", errors.New("err"))
+	logging.Error(exitCtx, "TEST 2", errors.New("err"),
+		logging.WithDataField("aaaa"))
+	logging.Error(exitCtx, "TEST 3", errors.New("err"))
+	logging.Error(exitCtx, "TEST 4", errors.New("err"),
+		logging.WithDataField("aaaa"),
+		logging.WithCustomField("bbbb", "cccc"))
+	logging.Error(exitCtx, "TEST 5", errors.New("err"))
 
 	// ===== CREATING METRICS =====
 
