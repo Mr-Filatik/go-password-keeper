@@ -3,8 +3,6 @@ package server
 
 import (
 	"context"
-	"errors"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -37,12 +35,12 @@ const (
 //
 //nolint:funlen // Run() is the main function in which all components are initialized.
 func Run() {
-	logger, loggerErr := logging.NewZapSugarLoggerWithFields(
-		logging.LevelInfo,
-		os.Stdout,
-		logging.FormatJSON,
-		"project", projectName,
-		"app", appName,
+	logger, loggerErr := logging.NewZapSugarLogger(
+		logging.LevelDebug,
+		logging.WithGlobalFields(
+			logging.WithProjectField(projectName),
+			logging.WithAppField(appName),
+		),
 	)
 	if loggerErr != nil {
 		panic(loggerErr)
@@ -55,10 +53,6 @@ func Run() {
 		}
 	}()
 
-	logger.Info("Application starting...") //"build version", buildVersion,
-	//"build date", buildDate,
-	//"build commit", buildCommit,
-
 	// ===== Binding OS signals to context =====
 	exitCtx, exitFn := signal.NotifyContext(
 		context.Background(),
@@ -69,16 +63,12 @@ func Run() {
 
 	appConfig := config.Initialize()
 
-	exitCtx = logging.ToContext(exitCtx, logger)
-
-	logging.Error(exitCtx, "TEST 1", errors.New("err"))
-	logging.Error(exitCtx, "TEST 2", errors.New("err"),
-		logging.WithDataField("aaaa"))
-	logging.Error(exitCtx, "TEST 3", errors.New("err"))
-	logging.Error(exitCtx, "TEST 4", errors.New("err"),
-		logging.WithDataField("aaaa"),
-		logging.WithCustomField("bbbb", "cccc"))
-	logging.Error(exitCtx, "TEST 5", errors.New("err"))
+	logging.LogInfo(logger, "Application starting...",
+		logging.WithDataField(map[string]string{
+			"version": buildVersion,
+			"date":    buildDate,
+			"commit":  buildCommit,
+		}))
 
 	// ===== CREATING METRICS =====
 
@@ -116,14 +106,14 @@ func Run() {
 		http.ServerConfig{
 			Address:         appConfig.Address,
 			MetricsProvider: metricsProvider,
-		}, logger.With("component", "main http server")) // можно вынести внутрь
+		}, logger.With(logging.WithComponentField("main http server"))) // можно вынести внутрь
 
 	addServer := http.NewServer(
 		"add http server",
 		http.ServerConfig{
 			Address:         ":31212",
 			MetricsProvider: metricsProvider,
-		}, logger.With("component", "add http server")) // можно вынести внутрь
+		}, logger)
 
 	cacher := redis.NewCacher("redis cacher",
 		redis.CacherConfig{
@@ -133,7 +123,7 @@ func Run() {
 			Username:    "",
 			Password:    "",
 			ConnTimeout: connectionTimeout,
-		}, logger.With("component", "redis cacher")) // можно вынести внутрь
+		}, logger)
 
 	// ===== APP RUN =====
 

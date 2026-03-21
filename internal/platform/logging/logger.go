@@ -51,7 +51,7 @@ type Logger interface {
 	// Example:
 	//   log := baseLogger.With("service", "issuetickets", "env", "test07")
 	//   log.Info("something happened", "order_id", orderID)
-	With(keysAndValues ...any) Logger
+	With(options ...FieldOption) Logger
 
 	// Debug logs the message and parameters with the debug level.
 	//

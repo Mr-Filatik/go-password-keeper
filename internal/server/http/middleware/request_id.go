@@ -31,7 +31,8 @@ func RequestID() Middleware {
 
 			//ctx = context.WithValue(ctx, CtxKeyXRequestID, requestID)
 
-			logger := logging.FromContext(ctx).With(logging.FieldRequestID, requestID)
+			logger := logging.FromContext(ctx).With(
+				logging.WithRequestIDField(requestID))
 			ctx = logging.ToContext(ctx, logger)
 
 			w.Header().Set(HeaderRequestID, requestID)

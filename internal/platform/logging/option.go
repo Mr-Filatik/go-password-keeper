@@ -1,75 +1,53 @@
 package logging
 
 import (
-	"fmt"
+	"io"
+	"os"
 )
 
-type FieldOption func(args []any) []any
+type config struct {
+	// logLevel        LogLevel
+	writer          io.Writer
+	format          LogFormat
+	callerSkipCount int
 
-func applyOptions(options ...FieldOption) []any {
-	tempMap := make(map[any]struct{}, len(options))
-
-	fields := make([]any, 0, len(options)*2+2) // Error + CallStack
-
-	for _, applyOpt := range options {
-		tempFields := applyOpt(fields)
-
-		for i := 0; i < len(tempFields); i += 2 {
-			_, ok := tempMap[tempFields[i]]
-			if !ok {
-				tempMap[tempFields[i]] = struct{}{}
-				fields = applyOpt(fields)
-			}
-		}
-	}
-
-	return fields
+	globalFields []any
 }
 
-// Стандартные ошибки в Go (созданные через errors.New) не содержат стек. Чтобы он появился, ошибку нужно «создать» или «обернуть» специальной библиотекой при возникновении:
-// Создание: errors.WithStack(err) или errors.Errorf("...) из ://github.com.
-type stackTracer interface {
-	StackTrace() any // errors.StackTrace
-}
+func defaultConfig() config {
+	return config{
+		writer:          os.Stdout,
+		format:          FormatJSON,
+		callerSkipCount: 2,
 
-// Хотите, чтобы я показал, как сделать
-// WithErrorField универсальным, чтобы он умел доставать StackTrace из ошибки?
-// Но тогда len(options) нарушится
-func WithErrorField(err error) FieldOption {
-	return func(args []any) []any {
-		if st, ok := err.(stackTracer); ok {
-			return append(args,
-				FieldBaseError, err.Error(),
-				FieldBaseStackTrace, fmt.Sprintf("%+v", st.StackTrace()))
-		}
-
-		return append(args, FieldBaseError, err.Error())
+		globalFields: []any{},
 	}
 }
 
-func WithDataField(data any) FieldOption {
-	return func(args []any) []any {
-		return append(args, FieldBaseData, data)
+type ConfigOption func(config *config)
+
+func WithWriter(writer io.Writer) ConfigOption {
+	return func(config *config) {
+		config.writer = writer
 	}
 }
 
-type ISanitizer interface {
-	Sanitize() any
-}
-
-func WithDataFieldSanitised(data any) FieldOption {
-	return func(args []any) []any {
-		sanitised, ok := data.(ISanitizer)
-		if !ok {
-			return append(args, FieldBaseData, data)
-		}
-
-		return append(args, FieldBaseData, sanitised.Sanitize())
+func WithFormat(format LogFormat) ConfigOption {
+	return func(config *config) {
+		config.format = format
 	}
 }
 
-func WithCustomField(key string, data any) FieldOption {
-	return func(args []any) []any {
-		return append(args, key, data)
+// TODO zap.AddCallerSkip(1) если напрямую логгер
+// TODO zap.AddCallerSkip(2) если логгер используется через Log... Ctx...
+func WithCallerSkip(count int) ConfigOption {
+	return func(config *config) {
+		config.callerSkipCount = count
+	}
+}
+
+func WithGlobalFields(options ...FieldOption) ConfigOption {
+	return func(config *config) {
+		config.globalFields = applyOptions(options...)
 	}
 }

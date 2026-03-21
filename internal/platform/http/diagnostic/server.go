@@ -39,14 +39,12 @@ const (
 
 // NewServer - creates a new HTTP server instance.
 func NewServer(conf ServerConfig, logger logging.Logger) *Server {
-	logger.Info("Server creating...")
-
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
-		logger:          logger,
+		logger:          logger.With(logging.WithComponentField("diagnostic server")),
 		router:          chi.NewRouter(),
 		server: &http.Server{
 			Addr:                         conf.Address,
@@ -72,8 +70,6 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 
 	srvr.registerHandlers()
 
-	logger.Info("Server create is successful")
-
 	return srvr
 }
 
@@ -81,11 +77,6 @@ func NewServer(conf ServerConfig, logger logging.Logger) *Server {
 //
 // Implements the server.IServer interface.
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info(
-		"Server starting...",
-		//"address", s.address,
-	)
-
 	s.server.BaseContext = func(_ net.Listener) context.Context {
 		return ctx
 	}
@@ -101,7 +92,10 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 
-	s.logger.Info("Server start is successful")
+	logging.LogInfo(s.logger, "Server start is successful",
+		logging.WithDataField(map[string]string{
+			"address": s.address,
+		}))
 
 	return nil
 }

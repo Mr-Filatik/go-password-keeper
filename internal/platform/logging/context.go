@@ -36,14 +36,42 @@ func FromContext(ctx context.Context) Logger {
 
 // Можно сделать ещё метод такой, чтобы caller был везде верный.
 // Тогда надо запретить вызывать логгер напрямую. Но как, приватные поля?
-func DebugLogger(logger Logger, msg string, options ...FieldOption) {
+func LogDebug(logger Logger, msg string, options ...FieldOption) {
 	if logger != nil {
 		logger.Debug(msg, options...)
 	}
 }
 
-// Debug writes a log to the logger located in the context with the debug level.
-func Debug(ctx context.Context, msg string, options ...FieldOption) {
+// LogInfo writes a log to the logger located in the context with the info level.
+func LogInfo(logger Logger, msg string, options ...FieldOption) {
+	if logger != nil {
+		logger.Info(msg, options...)
+	}
+}
+
+// LogWarn writes a log to the logger located in the context with the warning level.
+func LogWarn(logger Logger, msg string, err error, options ...FieldOption) {
+	if logger != nil {
+		logger.Warn(msg, err, options...)
+	}
+}
+
+// LogError writes a log to the logger located in the context with the error level.
+func LogError(logger Logger, msg string, err error, options ...FieldOption) {
+	if logger != nil {
+		logger.Error(msg, err, options...)
+	}
+}
+
+// LogFatal writes a log to the logger located in the context with the fatal level.
+func LogFatal(logger Logger, msg string, err error, options ...FieldOption) {
+	if logger != nil {
+		logger.Fatal(msg, err, options...)
+	}
+}
+
+// CtxDebug writes a log to the logger located in the context with the debug level.
+func CtxDebug(ctx context.Context, msg string, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
@@ -51,8 +79,8 @@ func Debug(ctx context.Context, msg string, options ...FieldOption) {
 	}
 }
 
-// Info writes a log to the logger located in the context with the info level.
-func Info(ctx context.Context, msg string, options ...FieldOption) {
+// CtxInfo writes a log to the logger located in the context with the info level.
+func CtxInfo(ctx context.Context, msg string, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
@@ -60,8 +88,8 @@ func Info(ctx context.Context, msg string, options ...FieldOption) {
 	}
 }
 
-// Warn writes a log to the logger located in the context with the warning level.
-func Warn(ctx context.Context, msg string, err error, options ...FieldOption) {
+// CtxWarn writes a log to the logger located in the context with the warning level.
+func CtxWarn(ctx context.Context, msg string, err error, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
@@ -69,8 +97,8 @@ func Warn(ctx context.Context, msg string, err error, options ...FieldOption) {
 	}
 }
 
-// Error writes a log to the logger located in the context with the error level.
-func Error(ctx context.Context, msg string, err error, options ...FieldOption) {
+// CtxError writes a log to the logger located in the context with the error level.
+func CtxError(ctx context.Context, msg string, err error, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {
@@ -78,8 +106,8 @@ func Error(ctx context.Context, msg string, err error, options ...FieldOption) {
 	}
 }
 
-// Fatal writes a log to the logger located in the context with the fatal level.
-func Fatal(ctx context.Context, msg string, err error, options ...FieldOption) {
+// CtxFatal writes a log to the logger located in the context with the fatal level.
+func CtxFatal(ctx context.Context, msg string, err error, options ...FieldOption) {
 	logger := FromContext(ctx)
 
 	if logger != nil {

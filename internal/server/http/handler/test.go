@@ -29,7 +29,7 @@ func Test(validator validator.IValidator) http.HandlerFunc {
 			return
 		}
 
-		logging.Info(ctx, "Test")
+		logging.CtxInfo(ctx, "Test")
 
 		req.Number++
 		req.Message += " new"

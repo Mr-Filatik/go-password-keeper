@@ -21,6 +21,12 @@ const (
 	FieldBasePayload = "payload" // Additional data not included in the message text.
 )
 
+const (
+	FieldProject   = "project"
+	FieldApp       = "app"
+	FieldComponent = "component"
+)
+
 // Fields used for tracing.
 const (
 	FieldRequestID = "request.id"

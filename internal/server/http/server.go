@@ -69,15 +69,13 @@ const (
 
 // NewServer - creates a new HTTP server instance.
 func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
-	logger.Info("Server creating...") //"address", conf.Address
-
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
 		name:            name,
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
-		logger:          logger,
+		logger:          logger.With(logging.WithComponentField(name)),
 		validator:       validator.New(),
 		router:          chi.NewRouter(),
 		server: &http.Server{
@@ -106,8 +104,6 @@ func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
 
 	srvr.registerHandlers()
 
-	logger.Info("Server create is successful")
-
 	return srvr
 }
 
@@ -123,21 +119,14 @@ func (s *Server) GetName() string {
 //
 // Implements the server.IServer interface.
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("Starting...") // "component", s.GetName())
-
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if s.started {
-		s.logger.Warn("Server already started", nil)
+		logging.LogWarn(s.logger, "Server already started", nil)
 
 		return nil
 	}
-
-	s.logger.Info(
-		"Starting HTTP server...",
-		//"address", s.address,
-	)
 
 	s.server.BaseContext = func(_ net.Listener) context.Context {
 		return ctx
@@ -147,16 +136,19 @@ func (s *Server) Start(ctx context.Context) error {
 		err := s.server.ListenAndServe()
 		if err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
-				s.logger.Error("Error in Server", err)
+				logging.LogError(s.logger, "Error in Server", err)
 			} else {
-				s.logger.Info("Server is closed")
+				logging.LogInfo(s.logger, "Server is closed")
 			}
 		}
 	}()
 
-	s.logger.Info("Server start is successful")
-
 	s.started = true
+
+	logging.LogInfo(s.logger, "Server start is successful",
+		logging.WithDataField(map[string]string{
+			"address": s.address,
+		}))
 
 	return nil
 }

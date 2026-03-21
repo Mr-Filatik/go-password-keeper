@@ -25,7 +25,7 @@ func (c *nopComponent) GetName() string {
 func (c *nopComponent) Start(_ context.Context) error {
 	err := fmt.Errorf("%w: nopComponent was launched", ErrComponentStarting)
 
-	c.logger.Warn("Actions with a service object", err)
+	logging.LogWarn(c.logger, "Actions with a stub object", err)
 
 	return nil
 }
@@ -36,7 +36,7 @@ func (c *nopComponent) Start(_ context.Context) error {
 func (c *nopComponent) Shutdown(_ context.Context) error {
 	err := fmt.Errorf("%w: nopComponent was soft stopped", ErrComponentShutdowning)
 
-	c.logger.Warn("Actions with a service object", err)
+	logging.LogWarn(c.logger, "Actions with a stub object", err)
 
 	return nil
 }
@@ -47,7 +47,7 @@ func (c *nopComponent) Shutdown(_ context.Context) error {
 func (c *nopComponent) Stop() error {
 	err := fmt.Errorf("%w: nopComponent has been stopped", ErrComponentStoping)
 
-	c.logger.Warn("Actions with a service object", err)
+	logging.LogWarn(c.logger, "Actions with a stub object", err)
 
 	return nil
 }

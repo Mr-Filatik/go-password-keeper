@@ -2,9 +2,6 @@
 package logging
 
 import (
-	"io"
-	"os"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -16,6 +13,8 @@ type ZapSugarLogger struct {
 
 	// logLevel - Logging level.
 	logLevel LogLevel
+
+	globalFields []any
 }
 
 // NewZapSugarLogger creates a new *ZapSugarLogger logger instance.
@@ -26,76 +25,55 @@ type ZapSugarLogger struct {
 //   - format LogFormat: log output format.
 func NewZapSugarLogger(
 	logLevel LogLevel,
-	out io.Writer,
-	format LogFormat,
-) (*ZapSugarLogger, error) {
-	if out == nil {
-		out = os.Stdout
+	options ...ConfigOption,
+) (Logger, error) {
+	config := defaultConfig()
+
+	for _, option := range options {
+		option(&config)
 	}
 
 	logLevel = logLevel.Validate()
 
-	config := zap.NewProductionEncoderConfig()
-	config.EncodeTime = zapcore.ISO8601TimeEncoder
-	config.TimeKey = FieldBaseTimestamp
-	config.LevelKey = FieldBaseLevel
-	config.MessageKey = FieldBaseMessage
-	config.CallerKey = FieldBaseCaller
-	config.EncodeLevel = zapcore.CapitalLevelEncoder // for text can be replaced with CapitalColorLevelEncoder
+	zapConfig := zap.NewProductionEncoderConfig()
+	zapConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	zapConfig.TimeKey = FieldBaseTimestamp
+	zapConfig.LevelKey = FieldBaseLevel
+	zapConfig.MessageKey = FieldBaseMessage
+	zapConfig.CallerKey = FieldBaseCaller
+	zapConfig.EncodeLevel = zapcore.CapitalLevelEncoder // for text can be replaced with CapitalColorLevelEncoder
 
 	var encoder zapcore.Encoder
 
-	switch format {
+	switch config.format {
 	case FormatJSON:
-		encoder = zapcore.NewJSONEncoder(config)
+		encoder = zapcore.NewJSONEncoder(zapConfig)
 	case FormatText:
-		encoder = zapcore.NewConsoleEncoder(config)
+		encoder = zapcore.NewConsoleEncoder(zapConfig)
 	default:
-		format = FormatJSON
-		encoder = zapcore.NewJSONEncoder(config)
+		encoder = zapcore.NewJSONEncoder(zapConfig)
 	}
 
 	core := zapcore.NewCore(
 		encoder,
-		zapcore.AddSync(out),
+		zapcore.AddSync(config.writer),
 		levelToZapCoreLevel(logLevel),
 	)
 
-	zapLogger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	zapLogger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(config.callerSkipCount))
 	zapSugarLogger := &ZapSugarLogger{
-		log:      zapLogger.Sugar(),
-		logLevel: logLevel,
+		log:          zapLogger.Sugar(),
+		logLevel:     logLevel,
+		globalFields: config.globalFields,
 	}
 
-	zapSugarLogger.Info("ZapSugar logger initialize is successful",
-		WithCustomField("format", format),
-		WithCustomField("level", logLevel.String()),
-	)
+	LogInfo(zapSugarLogger, "ZapSugar logger initialize is successful",
+		WithDataField(map[string]any{
+			"format": config.format,
+			"level":  logLevel.String(),
+		}))
 
 	return zapSugarLogger, nil
-}
-
-// NewZapSugarLoggerWithFields creates a new *ZapSugarLogger logger instance with common fields (labels).
-//
-// Parameters:
-//   - logLevel LogLevel: logging level;
-//   - out io.Writer: log output;
-//   - format LogFormat: log output format;
-//   - keysAndValues ...any: common fields (labels).
-//
-//nolint:ireturn // Necessary to fix the function in the interface.
-func NewZapSugarLoggerWithFields(
-	logLevel LogLevel,
-	out io.Writer,
-	format LogFormat,
-	keysAndValues ...any,
-) (Logger, error) {
-	logger, err := NewZapSugarLogger(logLevel, out, format)
-	if err != nil {
-		return logger, err
-	}
-
-	return logger.With(keysAndValues...), nil
 }
 
 // With returns a new logger with added common fields (labels).
@@ -106,14 +84,19 @@ func NewZapSugarLoggerWithFields(
 // Implements the internal/platform/logging.Logger interface.
 //
 //nolint:ireturn // Necessary to fix the function in the interface.
-func (l *ZapSugarLogger) With(keysAndValues ...any) Logger {
+func (l *ZapSugarLogger) With(options ...FieldOption) Logger {
 	if l == nil {
 		return nil
 	}
 
+	// TODO убрать дубли
+	fields := l.globalFields
+	fields = append(fields, applyOptions(options...)...)
+
 	return &ZapSugarLogger{
-		log:      l.log.With(keysAndValues...),
-		logLevel: l.logLevel,
+		log:          l.log.With(fields...),
+		logLevel:     l.logLevel,
+		globalFields: fields,
 	}
 }
 
@@ -129,7 +112,8 @@ func (l *ZapSugarLogger) Debug(msg string, options ...FieldOption) {
 		return
 	}
 
-	fields := applyOptions(options...)
+	fields := l.globalFields
+	fields = append(fields, applyOptions(options...)...)
 
 	l.log.Debugw(msg, fields...)
 }
@@ -146,7 +130,8 @@ func (l *ZapSugarLogger) Info(msg string, options ...FieldOption) {
 		return
 	}
 
-	fields := applyOptions(options...)
+	fields := l.globalFields
+	fields = append(fields, applyOptions(options...)...)
 
 	l.log.Infow(msg, fields...)
 }
@@ -171,7 +156,8 @@ func (l *ZapSugarLogger) Warn(msg string, err error, options ...FieldOption) {
 		allOptions = options
 	}
 
-	fields := applyOptions(allOptions...)
+	fields := l.globalFields
+	fields = append(fields, applyOptions(allOptions...)...)
 
 	l.log.Warnw(msg, fields...)
 }
@@ -190,7 +176,9 @@ func (l *ZapSugarLogger) Error(msg string, err error, options ...FieldOption) {
 	}
 
 	allOptions := append([]FieldOption{WithErrorField(err)}, options...)
-	fields := applyOptions(allOptions...)
+
+	fields := l.globalFields
+	fields = append(fields, applyOptions(allOptions...)...)
 
 	l.log.Errorw(msg, fields...)
 }
@@ -209,7 +197,9 @@ func (l *ZapSugarLogger) Fatal(msg string, err error, options ...FieldOption) {
 	}
 
 	allOptions := append([]FieldOption{WithErrorField(err)}, options...)
-	fields := applyOptions(allOptions...)
+
+	fields := l.globalFields
+	fields = append(fields, applyOptions(allOptions...)...)
 
 	l.log.Fatalw(msg, fields...)
 }

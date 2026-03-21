@@ -35,7 +35,7 @@ type CacherConfig struct {
 //   - conf CacherConfig: config;
 //   - logger logging.Logger: logger.
 func NewCacher(name string, conf CacherConfig, logger logging.Logger) *Cacher {
-	logger.Info("Cacher creating...")
+	logger = logger.With(logging.WithComponentField(name))
 
 	redis.SetLogger(adapter.NewLoggerAdapter(logger))
 
@@ -45,8 +45,6 @@ func NewCacher(name string, conf CacherConfig, logger logging.Logger) *Cacher {
 		client: nil,
 		config: conf,
 	}
-
-	logger.Info("Cacher create is successful")
 
 	return chr
 }
@@ -63,12 +61,6 @@ func (c *Cacher) GetName() string {
 //
 // Implements the server.IServer interface.
 func (c *Cacher) Start(ctx context.Context) error {
-	c.logger.Info(
-		"Cacher starting...",
-		//"address", c.config.Address,
-		//"database", c.config.DBNumber,
-	)
-
 	//nolint:exhaustruct // other options use the default value
 	redisOptions := &redis.Options{
 		Addr:       c.config.Address,
@@ -88,7 +80,11 @@ func (c *Cacher) Start(ctx context.Context) error {
 		return fmt.Errorf("connect to redis error: %w", pingErr)
 	}
 
-	c.logger.Info("Cacher start is successful")
+	logging.LogInfo(c.logger, "Cacher start is successful",
+		logging.WithDataField(map[string]any{
+			"address":  c.config.Address,
+			"database": c.config.DBNumber,
+		}))
 
 	return nil
 }
