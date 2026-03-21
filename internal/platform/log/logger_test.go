@@ -1,9 +1,9 @@
-package logging_test
+package log_test
 
 import (
 	"testing"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,37 +12,37 @@ func TestLogLevel_String(t *testing.T) {
 
 	tests := []struct {
 		name string
-		l    logging.LogLevel
+		l    log.LogLevel
 		want string
 	}{
 		{
 			name: "debug level",
-			l:    logging.LevelDebug,
+			l:    log.LevelDebug,
 			want: "debug",
 		},
 		{
 			name: "info level",
-			l:    logging.LevelInfo,
+			l:    log.LevelInfo,
 			want: "info",
 		},
 		{
 			name: "warning level",
-			l:    logging.LevelWarn,
+			l:    log.LevelWarn,
 			want: "warn",
 		},
 		{
 			name: "error level",
-			l:    logging.LevelError,
+			l:    log.LevelError,
 			want: "error",
 		},
 		{
 			name: "fatal level",
-			l:    logging.LevelFatal,
+			l:    log.LevelFatal,
 			want: "fatal",
 		},
 		{
 			name: "unknown level",
-			l:    logging.LogLevel(99),
+			l:    log.LogLevel(99),
 			want: "none",
 		},
 	}
@@ -63,38 +63,38 @@ func TestLogLevel_Limit(t *testing.T) {
 
 	tests := []struct {
 		name string
-		l    logging.LogLevel
-		want logging.LogLevel
+		l    log.LogLevel
+		want log.LogLevel
 	}{
 		{
 			name: "debug level",
-			l:    logging.LevelDebug,
-			want: logging.LevelDebug,
+			l:    log.LevelDebug,
+			want: log.LevelDebug,
 		},
 		{
 			name: "info level",
-			l:    logging.LevelInfo,
-			want: logging.LevelInfo,
+			l:    log.LevelInfo,
+			want: log.LevelInfo,
 		},
 		{
 			name: "warning level",
-			l:    logging.LevelWarn,
-			want: logging.LevelWarn,
+			l:    log.LevelWarn,
+			want: log.LevelWarn,
 		},
 		{
 			name: "error level",
-			l:    logging.LevelError,
-			want: logging.LevelError,
+			l:    log.LevelError,
+			want: log.LevelError,
 		},
 		{
 			name: "fatal level",
-			l:    logging.LevelFatal,
-			want: logging.LevelError,
+			l:    log.LevelFatal,
+			want: log.LevelError,
 		},
 		{
 			name: "unknown level",
-			l:    logging.LogLevel(99),
-			want: logging.LevelError,
+			l:    log.LogLevel(99),
+			want: log.LevelError,
 		},
 	}
 	for _, tt := range tests {

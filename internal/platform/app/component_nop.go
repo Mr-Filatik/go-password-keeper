@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 )
 
 // nopComponent represents a stub component.
 type nopComponent struct {
-	logger logging.Logger
+	logger log.ILogger
 }
 
 // GetName displays the name of the component.
@@ -25,7 +25,7 @@ func (c *nopComponent) GetName() string {
 func (c *nopComponent) Start(_ context.Context) error {
 	err := fmt.Errorf("%w: nopComponent was launched", ErrComponentStarting)
 
-	logging.LogWarn(c.logger, "Actions with a stub object", err)
+	log.LogWarn(c.logger, "Actions with a stub object", err)
 
 	return nil
 }
@@ -36,7 +36,7 @@ func (c *nopComponent) Start(_ context.Context) error {
 func (c *nopComponent) Shutdown(_ context.Context) error {
 	err := fmt.Errorf("%w: nopComponent was soft stopped", ErrComponentShutdowning)
 
-	logging.LogWarn(c.logger, "Actions with a stub object", err)
+	log.LogWarn(c.logger, "Actions with a stub object", err)
 
 	return nil
 }
@@ -47,7 +47,7 @@ func (c *nopComponent) Shutdown(_ context.Context) error {
 func (c *nopComponent) Stop() error {
 	err := fmt.Errorf("%w: nopComponent has been stopped", ErrComponentStoping)
 
-	logging.LogWarn(c.logger, "Actions with a stub object", err)
+	log.LogWarn(c.logger, "Actions with a stub object", err)
 
 	return nil
 }

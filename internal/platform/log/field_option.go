@@ -1,4 +1,4 @@
-package logging
+package log
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 
 type FieldOption func(args []any) []any
 
-func applyOptions(options ...FieldOption) []any {
+func ApplyOptions(options ...FieldOption) []any {
 	tempMap := make(map[any]struct{}, len(options))
 
 	fields := make([]any, 0, len(options)*2+2) // Error + CallStack

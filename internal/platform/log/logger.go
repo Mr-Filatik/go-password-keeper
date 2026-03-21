@@ -1,5 +1,5 @@
-// Package logging provides logging functionality.
-package logging
+// Package log provides logging functionality.
+package log
 
 import "io"
 
@@ -39,10 +39,10 @@ const (
 	FormatText LogFormat = "TEXT"
 )
 
-// Logger describes the interface for all loggers used in the project.
+// ILogger describes the interface for all loggers used in the project.
 //
 // It is an implementation of the adapter pattern for converting any logger to a common interface.
-type Logger interface {
+type ILogger interface {
 	// With returns a new logger with added common fields (labels).
 	//
 	// Parameters:
@@ -51,7 +51,7 @@ type Logger interface {
 	// Example:
 	//   log := baseLogger.With("service", "issuetickets", "env", "test07")
 	//   log.Info("something happened", "order_id", orderID)
-	With(options ...FieldOption) Logger
+	With(options ...FieldOption) ILogger
 
 	// Debug logs the message and parameters with the debug level.
 	//

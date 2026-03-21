@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/caching/redis/adapter"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	redislog "github.com/mr-filatik/go-password-keeper/internal/platform/caching/redis/log"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/redis/go-redis/v9"
 )
 
 // Cacher describes the Cacher structure for communicating with the simple redis service.
 type Cacher struct {
-	logger logging.Logger
+	logger log.ILogger
 	client *redis.Client
 	config CacherConfig
 	name   string
@@ -34,10 +34,10 @@ type CacherConfig struct {
 // Parameters:
 //   - conf CacherConfig: config;
 //   - logger logging.Logger: logger.
-func NewCacher(name string, conf CacherConfig, logger logging.Logger) *Cacher {
-	logger = logger.With(logging.WithComponentField(name))
+func NewCacher(name string, conf CacherConfig, logger log.ILogger) *Cacher {
+	logger = logger.With(log.WithComponentField(name))
 
-	redis.SetLogger(adapter.NewLoggerAdapter(logger))
+	redis.SetLogger(redislog.NewLoggerAdapter(logger))
 
 	chr := &Cacher{
 		name:   name,
@@ -80,8 +80,8 @@ func (c *Cacher) Start(ctx context.Context) error {
 		return fmt.Errorf("connect to redis error: %w", pingErr)
 	}
 
-	logging.LogInfo(c.logger, "Cacher start is successful",
-		logging.WithDataField(map[string]any{
+	log.LogInfo(c.logger, "Cacher start is successful",
+		log.WithDataField(map[string]any{
 			"address":  c.config.Address,
 			"database": c.config.DBNumber,
 		}))

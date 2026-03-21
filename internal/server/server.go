@@ -10,10 +10,12 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform/app"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/caching/redis"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
+	zaplog "github.com/mr-filatik/go-password-keeper/internal/platform/log/zap"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 	"github.com/mr-filatik/go-password-keeper/internal/server/config"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http"
+	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
 
 //nolint:gochecknoglobals // substitution of linker flags via -ldflags
@@ -35,11 +37,11 @@ const (
 //
 //nolint:funlen // Run() is the main function in which all components are initialized.
 func Run() {
-	logger, loggerErr := logging.NewZapSugarLogger(
-		logging.LevelDebug,
-		logging.WithGlobalFields(
-			logging.WithProjectField(projectName),
-			logging.WithAppField(appName),
+	logger, loggerErr := zaplog.NewZapSugarLogger(
+		log.LevelDebug,
+		log.WithGlobalFields(
+			log.WithProjectField(projectName),
+			log.WithAppField(appName),
 		),
 	)
 	if loggerErr != nil {
@@ -63,11 +65,18 @@ func Run() {
 
 	appConfig := config.Initialize()
 
-	logging.LogInfo(logger, "Application starting...",
-		logging.WithDataField(map[string]string{
+	log.LogInfo(logger, "Application starting...",
+		log.WithDataField(map[string]string{
 			"version": buildVersion,
 			"date":    buildDate,
 			"commit":  buildCommit,
+		}))
+
+	log.LogInfo(logger, "TEST",
+		log.WithDataFieldSanitised(dto.UserInfo{
+			ID:       "asascscs",
+			Email:    "123456789@12345.123",
+			Password: "csnskcnsckn",
 		}))
 
 	// ===== CREATING METRICS =====
@@ -106,7 +115,7 @@ func Run() {
 		http.ServerConfig{
 			Address:         appConfig.Address,
 			MetricsProvider: metricsProvider,
-		}, logger.With(logging.WithComponentField("main http server"))) // можно вынести внутрь
+		}, logger.With(log.WithComponentField("main http server"))) // можно вынести внутрь
 
 	addServer := http.NewServer(
 		"add http server",

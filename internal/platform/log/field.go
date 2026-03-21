@@ -1,5 +1,5 @@
 // Package logging provides logging functionality.
-package logging
+package log
 
 // Main fields for logging.
 const (

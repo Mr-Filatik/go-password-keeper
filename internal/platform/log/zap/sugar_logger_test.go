@@ -1,4 +1,4 @@
-package logging_test
+package zaplog_test
 
 // import (
 // 	"bytes"

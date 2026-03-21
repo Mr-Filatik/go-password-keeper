@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
@@ -29,7 +29,7 @@ func Test(validator validator.IValidator) http.HandlerFunc {
 			return
 		}
 
-		logging.CtxInfo(ctx, "Test")
+		log.CtxInfo(ctx, "Test")
 
 		req.Number++
 		req.Message += " new"

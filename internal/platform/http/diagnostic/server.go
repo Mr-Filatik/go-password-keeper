@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
@@ -20,7 +20,7 @@ type Server struct {
 	router          *chi.Mux
 	server          *http.Server
 	metricsProvider *metrics.Provider
-	logger          logging.Logger
+	logger          log.ILogger
 	address         string
 }
 
@@ -38,13 +38,13 @@ const (
 )
 
 // NewServer - creates a new HTTP server instance.
-func NewServer(conf ServerConfig, logger logging.Logger) *Server {
+func NewServer(conf ServerConfig, logger log.ILogger) *Server {
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
-		logger:          logger.With(logging.WithComponentField("diagnostic server")),
+		logger:          logger.With(log.WithComponentField("diagnostic server")),
 		router:          chi.NewRouter(),
 		server: &http.Server{
 			Addr:                         conf.Address,
@@ -92,8 +92,8 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 
-	logging.LogInfo(s.logger, "Server start is successful",
-		logging.WithDataField(map[string]string{
+	log.LogInfo(s.logger, "Server start is successful",
+		log.WithDataField(map[string]string{
 			"address": s.address,
 		}))
 

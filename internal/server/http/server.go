@@ -31,7 +31,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	_ "github.com/mr-filatik/go-password-keeper/docs/swagger/server" // Swagger docs registration in HTTP server.
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/handler"
@@ -46,7 +46,7 @@ type Server struct {
 	router          *chi.Mux
 	server          *http.Server
 	metricsProvider *metrics.Provider
-	logger          logging.Logger
+	logger          log.ILogger
 	validator       validator.IValidator
 	address         string
 
@@ -68,14 +68,14 @@ const (
 )
 
 // NewServer - creates a new HTTP server instance.
-func NewServer(name string, conf ServerConfig, logger logging.Logger) *Server {
+func NewServer(name string, conf ServerConfig, logger log.ILogger) *Server {
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
 		name:            name,
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
-		logger:          logger.With(logging.WithComponentField(name)),
+		logger:          logger.With(log.WithComponentField(name)),
 		validator:       validator.New(),
 		router:          chi.NewRouter(),
 		server: &http.Server{
@@ -123,7 +123,7 @@ func (s *Server) Start(ctx context.Context) error {
 	defer s.mu.Unlock()
 
 	if s.started {
-		logging.LogWarn(s.logger, "Server already started", nil)
+		log.LogWarn(s.logger, "Server already started", nil)
 
 		return nil
 	}
@@ -136,17 +136,17 @@ func (s *Server) Start(ctx context.Context) error {
 		err := s.server.ListenAndServe()
 		if err != nil {
 			if !errors.Is(err, http.ErrServerClosed) {
-				logging.LogError(s.logger, "Error in Server", err)
+				log.LogError(s.logger, "Error in Server", err)
 			} else {
-				logging.LogInfo(s.logger, "Server is closed")
+				log.LogInfo(s.logger, "Server is closed")
 			}
 		}
 	}()
 
 	s.started = true
 
-	logging.LogInfo(s.logger, "Server start is successful",
-		logging.WithDataField(map[string]string{
+	log.LogInfo(s.logger, "Server start is successful",
+		log.WithDataField(map[string]string{
 			"address": s.address,
 		}))
 

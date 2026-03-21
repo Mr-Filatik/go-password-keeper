@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/logging"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 )
 
 // App provides a framework for starting and stopping application containers.
 type App struct {
-	logger          logging.Logger
+	logger          log.ILogger
 	mainComponent   IComponent
 	metricsProvider IAppMetrics
 	diagServer      *diagnostic.Server
@@ -24,7 +24,7 @@ type App struct {
 }
 
 // New creates an instance of the App structure.
-func New(logger logging.Logger, diagServer *diagnostic.Server, opts ...Option) *App {
+func New(logger log.ILogger, diagServer *diagnostic.Server, opts ...Option) *App {
 	app := &App{
 		logger:               logger,
 		mainComponent:        &nopComponent{logger},

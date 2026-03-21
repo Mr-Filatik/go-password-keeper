@@ -1,11 +1,11 @@
-package logging
+package log
 
 import (
 	"io"
 	"os"
 )
 
-type config struct {
+type Config struct {
 	// logLevel        LogLevel
 	writer          io.Writer
 	format          LogFormat
@@ -14,8 +14,8 @@ type config struct {
 	globalFields []any
 }
 
-func defaultConfig() config {
-	return config{
+func DefaultConfig() Config {
+	return Config{
 		writer:          os.Stdout,
 		format:          FormatJSON,
 		callerSkipCount: 2,
@@ -24,16 +24,39 @@ func defaultConfig() config {
 	}
 }
 
-type ConfigOption func(config *config)
+func (c Config) GetWriter() io.Writer {
+	return c.writer
+}
+
+func (c Config) GetFormat() LogFormat {
+	return c.format
+}
+
+func (c Config) GetCallerSkipCount() int {
+	return c.callerSkipCount
+}
+
+func (c Config) GetGlobalFields() []any {
+	if c.globalFields == nil {
+		return nil
+	}
+
+	fields := make([]any, len(c.globalFields))
+	copy(fields, c.globalFields)
+
+	return c.globalFields
+}
+
+type ConfigOption func(config *Config)
 
 func WithWriter(writer io.Writer) ConfigOption {
-	return func(config *config) {
+	return func(config *Config) {
 		config.writer = writer
 	}
 }
 
 func WithFormat(format LogFormat) ConfigOption {
-	return func(config *config) {
+	return func(config *Config) {
 		config.format = format
 	}
 }
@@ -41,13 +64,13 @@ func WithFormat(format LogFormat) ConfigOption {
 // TODO zap.AddCallerSkip(1) если напрямую логгер
 // TODO zap.AddCallerSkip(2) если логгер используется через Log... Ctx...
 func WithCallerSkip(count int) ConfigOption {
-	return func(config *config) {
+	return func(config *Config) {
 		config.callerSkipCount = count
 	}
 }
 
 func WithGlobalFields(options ...FieldOption) ConfigOption {
-	return func(config *config) {
-		config.globalFields = applyOptions(options...)
+	return func(config *Config) {
+		config.globalFields = ApplyOptions(options...)
 	}
 }
