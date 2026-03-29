@@ -24,12 +24,12 @@ type App struct {
 }
 
 // New creates an instance of the App structure.
-func New(logger log.ILogger, diagServer *diagnostic.Server, opts ...Option) *App {
+func New(logger log.ILogger, opts ...Option) *App {
 	app := &App{
 		logger:               logger,
 		mainComponent:        &nopComponent{logger},
 		metricsProvider:      nil,
-		diagServer:           diagServer,
+		diagServer:           nil,
 		stopLaunchingOnError: false,
 	}
 
@@ -65,6 +65,24 @@ func (a *App) RegisterMainComponent(mainComponent IComponent) {
 // This may need to be reconsidered in the future; for now, it's noted in the comment.
 func (a *App) Start(ctx context.Context) error {
 	startTime := time.Now().UTC()
+
+	if a.diagServer != nil {
+		diagStartErr := a.diagServer.Start(ctx)
+		if diagStartErr != nil {
+			// only log?
+			WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metricsProvider)
+
+			err := fmt.Errorf("%w: diagnostic server: %v", ErrComponentStarting, diagStartErr.Error())
+			log.CtxError(ctx, "Starting diagnostic server error", err)
+
+			return err
+		}
+
+		// only log?
+		WriteStartMetric(a.mainComponent, metrics.StartStatusSuccess, startTime, a.metricsProvider)
+	}
+
+	startTime = time.Now().UTC()
 
 	startErr := a.mainComponent.Start(ctx)
 	if startErr != nil {

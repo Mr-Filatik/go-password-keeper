@@ -53,6 +53,12 @@ func WithDataField(data any) FieldOption {
 	}
 }
 
+func WithPayloadField(data any) FieldOption {
+	return func(args []any) []any {
+		return append(args, FieldBasePayload, data)
+	}
+}
+
 type ISanitizer interface {
 	Sanitize() any
 }

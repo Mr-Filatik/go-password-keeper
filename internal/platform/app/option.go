@@ -1,5 +1,10 @@
 package app
 
+import (
+	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+)
+
 // Option describes optional settings for the App.
 type Option func(*App)
 
@@ -15,5 +20,14 @@ func WithStopLaunchingOnError() Option {
 func WithStartStopMetrics(metrProv IAppMetrics) Option {
 	return func(a *App) {
 		a.metricsProvider = metrProv
+	}
+}
+
+func WithDiagnosticServer(addr string, metr *metrics.Provider) Option {
+	return func(a *App) {
+		a.diagServer = diagnostic.NewServer(diagnostic.ServerConfig{
+			Address:         addr,
+			MetricsProvider: metr,
+		}, a.logger)
 	}
 }

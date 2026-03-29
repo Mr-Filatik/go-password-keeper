@@ -21,6 +21,7 @@ package http
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand/v2"
@@ -33,7 +34,9 @@ import (
 	_ "github.com/mr-filatik/go-password-keeper/docs/swagger/server" // Swagger docs registration in HTTP server.
 	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/sequrity/mask/gabs"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
+	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/handler"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/middleware"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
@@ -273,12 +276,48 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 
 	s.logger.Info("ping")
 
+	user := dto.UserInfo{
+		ID:       "ID",
+		Email:    "filatik@gmail.com",
+		Password: "Password",
+		Claims: []string{
+			"AAA",
+			"BBB",
+			"CCC",
+		},
+		AAA: dto.AAA{
+			[]dto.BBB{
+				{
+					CCC: "AAA",
+				},
+				{
+					CCC: "BBB",
+				},
+				{
+					CCC: "CCC",
+				},
+			},
+		},
+	}
+
+	jsonResponse, marshalErr := json.Marshal(user)
+	if marshalErr != nil {
+		log.LogError(s.logger, "Marshal response failed", marshalErr)
+	}
+
+	masked, err := gabs.Mask(jsonResponse, user)
+	if err != nil {
+		log.LogError(s.logger, "Mask error", err)
+	}
+
+	log.LogInfo(s.logger, "TEST", log.WithPayloadField(masked))
+
 	w.WriteHeader(http.StatusOK)
 
 	//nolint:gosec // temp code
 	time.Sleep(time.Duration(rand.Int64N(tempRandValue)) * time.Millisecond)
 
-	_, err := w.Write([]byte("pong"))
+	_, err = w.Write([]byte("pong"))
 	if err != nil {
 		s.logger.Error("Internal server error (code 500)", err)
 		http.Error(w, "Error: "+err.Error(), http.StatusInternalServerError)

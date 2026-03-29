@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -141,11 +142,16 @@ func (s *Server) registerHandlers() {
 	// mux.HandleFunc("/readyz", s.handleReady)   // readiness
 
 	// // --- Pprof ---
-	// mux.HandleFunc("/debug/pprof/", pprof.Index)
-	// mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	// mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	// mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	// mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	s.router.HandleFunc("/debug/pprof/", pprof.Index)
+	//s.router.HandleFunc("/debug/pprof/allocs", pprof)
+	s.router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	//s.router.HandleFunc("/debug/pprof/allocs", goroutine)
+	//s.router.HandleFunc("/debug/pprof/allocs", heap)
+	//s.router.HandleFunc("/debug/pprof/allocs", mutex)
+	s.router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	s.router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	//s.router.HandleFunc("/debug/pprof/allocs", threadcreate)
+	s.router.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	s.server.Handler = s.router
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/mr-filatik/go-password-keeper/internal/platform/app"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/caching/redis"
-	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	zaplog "github.com/mr-filatik/go-password-keeper/internal/platform/log/zap"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
@@ -26,6 +25,7 @@ var (
 )
 
 const (
+	namespace   = "filatik"
 	projectName = "go_password_keeper"
 	appName     = "server"
 
@@ -81,7 +81,7 @@ func Run() {
 
 	// ===== CREATING METRICS =====
 
-	metricsProvider := metrics.CreateProvider("filatik", projectName, appName)
+	metricsProvider := metrics.CreateProvider(namespace, projectName, appName)
 
 	metricsProvider.App.SetBuildInfo(metrics.AppBuildLabel{
 		Version: buildVersion,
@@ -93,21 +93,6 @@ func Run() {
 		Number: "unknown",
 	})
 
-	// ===== DIAGNOSIC SERVER =====
-
-	diagnosticServer := diagnostic.NewServer(diagnostic.ServerConfig{
-		Address:         appConfig.DiagnosticAddress,
-		MetricsProvider: metricsProvider,
-	}, logger)
-
-	// внести запуск сервера внурь app
-	diagnosticServerStartErr := diagnosticServer.Start(exitCtx)
-	if diagnosticServerStartErr != nil {
-		logger.Error("Starting diagnostic server error", diagnosticServerStartErr)
-
-		return
-	}
-
 	// ===== CREATING SERVICES =====
 
 	mainServer := http.NewServer(
@@ -115,7 +100,7 @@ func Run() {
 		http.ServerConfig{
 			Address:         appConfig.Address,
 			MetricsProvider: metricsProvider,
-		}, logger.With(log.WithComponentField("main http server"))) // можно вынести внутрь
+		}, logger)
 
 	addServer := http.NewServer(
 		"add http server",
@@ -136,8 +121,9 @@ func Run() {
 
 	// ===== APP RUN =====
 
-	app := app.New(logger, diagnosticServer,
+	app := app.New(logger,
 		app.WithStartStopMetrics(metricsProvider.App),
+		app.WithDiagnosticServer(appConfig.DiagnosticAddress, metricsProvider),
 	)
 
 	app.RegisterComponents(

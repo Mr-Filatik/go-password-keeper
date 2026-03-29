@@ -8,7 +8,7 @@ import (
 type Config struct {
 	// logLevel        LogLevel
 	writer          io.Writer
-	format          LogFormat
+	format          OutputFormat
 	callerSkipCount int
 
 	globalFields []any
@@ -17,8 +17,8 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		writer:          os.Stdout,
-		format:          FormatJSON,
-		callerSkipCount: 2,
+		format:          OutputFormatJSON,
+		callerSkipCount: int(CallerSkipIndirect),
 
 		globalFields: []any{},
 	}
@@ -28,7 +28,7 @@ func (c Config) GetWriter() io.Writer {
 	return c.writer
 }
 
-func (c Config) GetFormat() LogFormat {
+func (c Config) GetFormat() OutputFormat {
 	return c.format
 }
 
@@ -55,17 +55,28 @@ func WithWriter(writer io.Writer) ConfigOption {
 	}
 }
 
-func WithFormat(format LogFormat) ConfigOption {
+func WithFormat(format OutputFormat) ConfigOption {
 	return func(config *Config) {
 		config.format = format
 	}
 }
 
-// TODO zap.AddCallerSkip(1) если напрямую логгер
-// TODO zap.AddCallerSkip(2) если логгер используется через Log... Ctx...
-func WithCallerSkip(count int) ConfigOption {
+type CallerSkip int
+
+const (
+	// CallerSkipNone если без логера вызываются
+	CallerSkipNone CallerSkip = 0
+
+	// CallerSkipDirect если напрямую логгер
+	CallerSkipDirect CallerSkip = 1
+
+	// CallerSkipIndirect если логгер используется через Log... Ctx...
+	CallerSkipIndirect CallerSkip = 2
+)
+
+func WithCallerSkip(count CallerSkip) ConfigOption {
 	return func(config *Config) {
-		config.callerSkipCount = count
+		config.callerSkipCount = int(count)
 	}
 }
 
