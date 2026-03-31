@@ -15,8 +15,6 @@ import (
 //
 // Implementation of the mask.IMasker interface
 // from the github.com/mr-filatik/go-password-keeper/internal/platform/sequrity/mask package.
-//
-//nolint:cyclop
 func Mask(data []byte, rules mask.IMaskable) (string, error) {
 	parsed, parsErr := gabs.ParseJSON(data)
 	if parsErr != nil {
@@ -27,27 +25,21 @@ func Mask(data []byte, rules mask.IMaskable) (string, error) {
 
 	opts := rules.Rules()
 	for _, opt := range opts {
-		switch opt.GetMaskType() {
-		case mask.MTypeNone:
-			continue
+		editFn := opt.GetMaskFunc()
+		deleteFn := opt.GetDeleteFunc()
 
-		case mask.MTypeEdit:
-			err := edit(parsed, opt.GetMaskFunc(), opt.GetPath())
+		if editFn != nil && deleteFn == nil {
+			err := editRecursive(parsed, opt.GetMaskFunc(), opt.GetPath())
 			if err != nil {
 				errs = append(errs, err)
 			}
+		}
 
-		case mask.MTypeEditInSlice:
-			err := editInSlice(parsed, opt.GetMaskFunc(), opt.GetPath(), opt.GetIntPath())
+		if editFn == nil && deleteFn != nil {
+			err := deleteRecursive(parsed, opt.GetDeleteFunc(), opt.GetPath())
 			if err != nil {
 				errs = append(errs, err)
 			}
-
-		case mask.MTypeRemove:
-			continue
-
-		case mask.MTypeRemoveInSlice:
-			continue
 		}
 	}
 
@@ -60,83 +52,185 @@ func Mask(data []byte, rules mask.IMaskable) (string, error) {
 	return parsed.String(), nil
 }
 
-func edit(cnt *gabs.Container, fnc mask.MFunc, path []string) error {
-	strPath := strings.Join(path, ".")
-
-	item := cnt.Search(path...)
-	if item == nil {
-		return nil // Not an error for optional fields
+//nolint:cyclop
+func editRecursive(node *gabs.Container, fnc mask.EditFunc, path []string) error {
+	if node == nil || len(path) == 0 {
+		return nil
 	}
 
-	maskedData, err := fnc(item.Data())
-	if err != nil {
-		return fmt.Errorf("mask in %s failed: %w", strPath, err)
+	part := path[0]
+	pathStr := strings.Join(path, ".")
+
+	var errs []error
+
+	if part == mask.Array {
+		children := node.Children()
+		for idx, child := range children {
+			if len(path) == 1 {
+				masked, merr := fnc(child.Data())
+				if merr != nil {
+					errs = append(errs, fmt.Errorf("masked %s failed: %w", pathStr, merr))
+
+					continue
+				}
+
+				_, serr := node.SetIndex(masked, idx)
+				if serr != nil {
+					errs = append(errs, fmt.Errorf("set index %s failed: %w", pathStr, serr))
+				}
+			} else {
+				eerr := editRecursive(child, fnc, path[1:])
+				if eerr != nil {
+					errs = append(errs, fmt.Errorf("edit %s failed: %w", pathStr, eerr))
+
+					// return eerr
+				}
+
+				_, serr := node.SetIndex(child.Data(), idx)
+				if serr != nil {
+					errs = append(errs, fmt.Errorf("set index %s failed: %w", pathStr, serr))
+				}
+			}
+		}
+
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+
+		return nil
 	}
 
-	_, err = cnt.Set(maskedData, path...)
-	if err != nil {
-		return fmt.Errorf("set value in %s failed: %w", strPath, err)
+	if len(path) == 1 {
+		target := node.Search(part)
+		if target.Data() == nil {
+			return nil
+		}
+
+		masked, merr := fnc(target.Data())
+		if merr != nil {
+			errs = append(errs, fmt.Errorf("masked %s failed: %w", pathStr, merr))
+
+			return errors.Join(errs...)
+		}
+
+		_, serr := node.Set(masked, part)
+		if serr != nil {
+			errs = append(errs, fmt.Errorf("set %s failed: %w", pathStr, serr))
+		}
+
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+
+		return nil
+	}
+
+	nextNode := node.Search(part)
+	if nextNode.Data() == nil {
+		return nil
+	}
+
+	eerr := editRecursive(nextNode, fnc, path[1:])
+	if eerr != nil {
+		errs = append(errs, fmt.Errorf("edit %s failed: %w", pathStr, eerr))
+
+		return errors.Join(errs...)
 	}
 
 	return nil
 }
 
-//nolint:cyclop
-func editInSlice(cnt *gabs.Container, fnc mask.MFunc, path []string, intpath []string) error {
-	item := cnt.Search(path...)
-	if item == nil {
-		return nil // Not an error for optional fields
+func deleteRecursive(node *gabs.Container, fnc mask.DeleteFunc, path []string) error {
+	if node == nil || len(path) == 0 {
+		return nil
 	}
 
-	childrens := item.Children()
+	part := path[0]
+	pathStr := strings.Join(path, ".")
 
-	for idx, child := range childrens {
-		strPath := fmt.Sprintf("%s.%d", strings.Join(path, "."), idx)
+	var errs []error
 
-		if child == nil {
-			continue // Not an error for optional fields
-		}
+	// СЛУЧАЙ 1: Работа с массивом
+	if part == mask.Array {
+		children := node.Children()
+		// Идем с конца в начало, чтобы удаление по индексу не ломало порядок
+		for idx := len(children) - 1; idx >= 0; idx-- {
+			child := children[idx]
 
-		if len(intpath) == 0 {
-			data := child.Data()
+			if len(path) == 1 {
+				// Удаляем сам элемент массива, если функция вернула true
+				ok, perr := fnc(child.Data())
+				if perr != nil {
+					errs = append(errs, fmt.Errorf("predicate %s failed: %w", pathStr, perr))
 
-			maskedData, err := fnc(data)
-			if err != nil {
-				return fmt.Errorf("mask in %s failed: %w", strPath, err)
+					continue // or delete?
+				}
+
+				if ok {
+					rerr := node.ArrayRemove(idx)
+					if rerr != nil {
+						// add idx
+						errs = append(errs, fmt.Errorf("remove index %s failed: %w", pathStr, rerr))
+					}
+				}
+			} else {
+				derr := deleteRecursive(child, fnc, path[1:])
+				if derr != nil {
+					errs = append(errs, fmt.Errorf("edit %s failed: %w", pathStr, derr))
+
+					//return err
+				}
+
+				_, serr := node.SetIndex(child.Data(), idx)
+				if serr != nil {
+					errs = append(errs, fmt.Errorf("set index %s failed: %w", pathStr, serr))
+				}
 			}
+		}
 
-			_, err = item.SetIndex(maskedData, idx)
-			if err != nil {
-				return fmt.Errorf("set value in %s failed: %w", strPath, err)
+		if len(errs) > 0 {
+			return errors.Join(errs...)
+		}
+
+		return nil
+	}
+
+	if len(path) == 1 {
+		target := node.Search(part)
+		if target.Data() == nil {
+			return nil
+		}
+
+		ok, perr := fnc(target.Data())
+		if perr != nil {
+			errs = append(errs, fmt.Errorf("predicate %s failed: %w", pathStr, perr))
+		}
+
+		if ok {
+			derr := node.Delete(part)
+			if derr != nil {
+				errs = append(errs, fmt.Errorf("delete %s failed: %w", pathStr, derr))
+				// return fmt.Errorf("delete field %s failed: %w", part, derr)
 			}
-
-			continue
 		}
 
-		strIntPath := strings.Join(intpath, ".")
-		strFullPath := fmt.Sprintf("%s.%s", strPath, strIntPath)
-
-		target := child.Search(intpath...)
-		if target == nil {
-			continue // Not an error for optional fields
+		if len(errs) > 0 {
+			return errors.Join(errs...)
 		}
 
-		data := target.Data()
+		return nil
+	}
 
-		maskedData, err := fnc(data)
-		if err != nil {
-			return fmt.Errorf("mask in %s failed: %w", strFullPath, err)
-		}
+	nextNode := node.Search(part)
+	if nextNode.Data() == nil {
+		return nil
+	}
 
-		_, err = child.SetP(maskedData, strIntPath)
-		if err != nil {
-			return fmt.Errorf("set value in %s failed: %w", strFullPath, err)
-		}
+	derr := deleteRecursive(nextNode, fnc, path[1:])
+	if derr != nil {
+		errs = append(errs, fmt.Errorf("edit %s failed: %w", pathStr, derr))
 
-		_, err = item.SetIndex(child.Data(), idx)
-		if err != nil {
-			return fmt.Errorf("set child in %s failed: %w", strPath, err)
-		}
+		return errors.Join(errs...)
 	}
 
 	return nil

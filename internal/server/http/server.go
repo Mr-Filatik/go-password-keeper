@@ -298,6 +298,7 @@ func (s *Server) ping(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		},
+		Delete: "delete",
 	}
 
 	jsonResponse, marshalErr := json.Marshal(user)

@@ -115,3 +115,9 @@ func WithSpanIDField(spanID string) FieldOption {
 		return append(args, FieldSpanID, spanID)
 	}
 }
+
+func WithStackTraceField(stack string) FieldOption {
+	return func(args []any) []any {
+		return append(args, WithStackTraceField, stack)
+	}
+}

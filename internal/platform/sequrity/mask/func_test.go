@@ -47,7 +47,7 @@ func TestPassword(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := mask.Password(tt.args.pass)
+			got := mask.PasswordMask(tt.args.pass)
 
 			assert.Equalf(t, tt.want.masked, got,
 				"Password() = %v, want %v", got, tt.want)
@@ -114,7 +114,7 @@ func TestEmail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := mask.Email(tt.args.email)
+			got := mask.EmailMask(tt.args.email)
 
 			assert.Equalf(t, tt.want.masked, got,
 				"Email() = %v, want %v", got, tt.want)
@@ -190,7 +190,7 @@ func TestPhone(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := mask.Phone(tt.args.phone)
+			got := mask.PhoneMask(tt.args.phone)
 
 			assert.Equalf(t, tt.want.masked, got,
 				"Phone() = %v, want %v", got, tt.want)

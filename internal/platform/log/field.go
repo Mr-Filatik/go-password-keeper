@@ -13,6 +13,7 @@ const (
 	FieldBaseErrorShort     = "err"       // Error.
 
 	FieldBaseCaller     = "caller" // Code call location.
+	FieldBaseCallStack  = "callstack"
 	FieldBaseStackTrace = "stacktrace"
 
 	// Данные внутри приложения.

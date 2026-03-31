@@ -12,4 +12,7 @@ type IMasker interface {
 type IMaskable interface {
 	// Rules returns the rules for masking fields for the type.
 	Rules() []Rule
+
+	// replace on Mask(data []byte) for testing
+	// нужно сразу иметь возможность тестами покрыть ошибки маскирования
 }

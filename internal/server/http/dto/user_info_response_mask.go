@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"errors"
+
 	"github.com/mr-filatik/go-password-keeper/internal/platform/sequrity/mask"
 )
 
@@ -10,18 +12,16 @@ import (
 // from the github.com/mr-filatik/go-password-keeper/internal/platform/sequrity/mask package.
 func (m UserInfo) Rules() []mask.Rule {
 	return []mask.Rule{
-		// UserInfo.Email
-		mask.RuleEdit([]string{"email"}, mask.MaskedEmail()),
-		// UserInfo.Password
-		mask.RuleEdit([]string{"password"}, mask.MaskedPassword()),
-		// UserInfo.Claims.0
-		mask.RuleEditInSlice([]string{"claims"}, []string{}, Custom()),
-		// UserInfo.AAA.BBB.0.CCC
-		mask.RuleEditInSlice([]string{"aaa", "bbbs"}, []string{"ccc"}, Custom()),
+		mask.RuleEdit(mask.Email(), "email"),
+		mask.RuleEdit(mask.Password(), "password"),
+		mask.RuleEdit(Custom(), "claims", mask.Array),
+		mask.RuleEdit(Custom2(), "aaa", "cccs", mask.Array, "ccc"),
+		mask.RuleEdit(Custom(), "aaa", "bbbs", mask.Array, "ccc"),
+		mask.RuleDelete(mask.DAny(), "delete"),
 	}
 }
 
-func Custom() mask.MFunc {
+func Custom() mask.EditFunc {
 	return mask.WrapStrToStrFn(func(s string) string {
 		if s != "BBB" {
 			return "*"
@@ -29,4 +29,10 @@ func Custom() mask.MFunc {
 
 		return s
 	})
+}
+
+func Custom2() mask.EditFunc {
+	return func(a any) (any, error) {
+		return nil, errors.New("error")
+	}
 }

@@ -8,6 +8,7 @@ type UserInfo struct {
 	Password string   `json:"password" validate:"required"`
 	Claims   []string `json:"claims"   validate:"required"`
 	AAA      AAA      `json:"aaa"      validate:"required"`
+	Delete   string   `json:"delete"   validate:"required"`
 }
 
 type AAA struct {
