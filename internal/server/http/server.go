@@ -222,7 +222,8 @@ func (s *Server) registerMiddlewares() {
 	s.router.Use(
 		// middleware.Recover(s.logger), // сделать глобальный recover???
 		middleware.InjectLogger(s.logger),
-		middleware.RequestID(), // простой и не паникует
+		middleware.AdvancedTracing(),
+		// middleware.RequestID(), // простой и не паникует
 		// middleware.Limiter(...), // limiter: дешёво отстреливаем лишнее, защищает от DDoS / флудеров вообще.
 		// middleware.LimiterUserID(...), // Пользовательский (по user_id) — уже после Auth, в защищённой группе.
 		middleware.Recover(),

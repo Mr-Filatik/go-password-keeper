@@ -43,6 +43,7 @@ func Run() {
 			log.WithProjectField(projectName),
 			log.WithAppField(appName),
 		),
+		log.WithAutoTracingFromContext(),
 	)
 	if loggerErr != nil {
 		panic(loggerErr)

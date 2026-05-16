@@ -59,3 +59,7 @@ type ILogger interface {
 	// Implements the io.Closer interface.
 	io.Closer
 }
+
+type IAutoLogger interface {
+	IsAutoTracing() bool
+}

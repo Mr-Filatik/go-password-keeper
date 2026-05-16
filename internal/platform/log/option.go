@@ -10,6 +10,7 @@ type Config struct {
 	writer          io.Writer
 	format          OutputFormat
 	callerSkipCount int
+	autoTracing     bool
 
 	globalFields []any
 }
@@ -45,6 +46,10 @@ func (c Config) GetGlobalFields() []any {
 	copy(fields, c.globalFields)
 
 	return c.globalFields
+}
+
+func (c Config) GetAutoTracing() bool {
+	return c.autoTracing
 }
 
 type ConfigOption func(config *Config)
@@ -83,5 +88,11 @@ func WithCallerSkip(count CallerSkip) ConfigOption {
 func WithGlobalFields(options ...FieldOption) ConfigOption {
 	return func(config *Config) {
 		config.globalFields = ApplyOptions(options...)
+	}
+}
+
+func WithAutoTracingFromContext() ConfigOption {
+	return func(config *Config) {
+		config.autoTracing = true
 	}
 }

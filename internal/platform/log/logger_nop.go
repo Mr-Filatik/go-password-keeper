@@ -3,7 +3,7 @@ package log
 
 type nopLogger struct{}
 
-var nop ILogger = &nopLogger{}
+var Nop ILogger = &nopLogger{}
 
 func (l *nopLogger) With(_ ...FieldOption) ILogger {
 	return l

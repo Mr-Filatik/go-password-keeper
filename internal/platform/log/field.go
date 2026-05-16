@@ -12,14 +12,24 @@ const (
 	FieldBaseError          = "error"     // Error.
 	FieldBaseErrorShort     = "err"       // Error.
 
-	FieldBaseCaller     = "caller" // Code call location.
-	FieldBaseCallStack  = "callstack"
+	FieldBaseCaller    = "caller" // Code call location.
+	FieldBaseCallStack = "callstack"
+
+	// FieldBaseStackTrace is a special field for displaying the full call path.
+	//
+	// It should contain the full chain of function calls from main() to the current function.
+	// This is quite resource-intensive; it is recommended to use this field only for panics.
 	FieldBaseStackTrace = "stacktrace"
 
-	// Данные внутри приложения.
-	FieldBaseData = "data" // Additional data not included in the message text.
-	// Данные, которые передаются или принимаются откуда-то.
-	FieldBasePayload = "payload" // Additional data not included in the message text.
+	// FieldBaseData field is a special field for additional data not included in the message text.
+	//
+	// This field is recommended for data used within the application.
+	FieldBaseData = "data"
+
+	// FieldBasePayload field is a special field for additional data not included in the message text.
+	//
+	// This field is recommended for use with data that is transmitted or received from somewhere external.
+	FieldBasePayload = "payload"
 )
 
 const (
@@ -31,8 +41,10 @@ const (
 // Fields used for tracing.
 const (
 	FieldRequestID = "request.id"
-	FieldSpanID    = "span.id"
-	FieldTraceID   = "trace.id"
+
+	FieldTraceID  = "trace.id"
+	FieldSpanID   = "span.id"
+	FieldParentID = "parent.id"
 )
 
 // HTTP-related fields for logging.

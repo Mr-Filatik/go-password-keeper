@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 	"strings"
 
+	logctx "github.com/mr-filatik/go-password-keeper/internal/platform/ctx/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 )
 
@@ -24,7 +25,7 @@ func Recover() Middleware {
 						panic(rec)
 					}
 
-					log.CtxError(r.Context(), "HTTP Request-Response Recover", err,
+					logctx.Error(r.Context(), "HTTP Request-Response Recover", err,
 						log.WithStackTraceField(string(debug.Stack())))
 					//"request_id", r.Header.Get(HeaderRequestID),
 

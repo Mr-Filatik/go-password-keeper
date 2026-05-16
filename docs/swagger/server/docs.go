@@ -130,11 +130,25 @@ const docTemplate = `{
                 "RequestValidationError"
             ]
         },
+        "SecretType": {
+            "type": "string",
+            "enum": [
+                "json",
+                "password",
+                "string"
+            ],
+            "x-enum-varnames": [
+                "SecretTypeJSON",
+                "SecretTypePassword",
+                "SecretTypeString"
+            ]
+        },
         "TestRequest": {
             "type": "object",
             "required": [
                 "message",
-                "number"
+                "number",
+                "type"
             ],
             "properties": {
                 "mes": {
@@ -147,6 +161,9 @@ const docTemplate = `{
                     "type": "integer",
                     "maximum": 599,
                     "minimum": 100
+                },
+                "type": {
+                    "$ref": "#/definitions/SecretType"
                 }
             }
         },

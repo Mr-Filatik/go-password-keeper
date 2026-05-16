@@ -1,9 +1,13 @@
 package handler
 
 import (
+	"context"
+	"errors"
 	"net/http"
 
-	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
+	logctx "github.com/mr-filatik/go-password-keeper/internal/platform/ctx/log"
+	tracectx "github.com/mr-filatik/go-password-keeper/internal/platform/ctx/trace"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/types"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
@@ -24,12 +28,21 @@ func Test(validator validator.IValidator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
+		_, err := dto.SecretTypeFromString("aaa")
+		if err != nil {
+			if errors.Is(err, types.ErrUnexpectedValue) {
+				logctx.Error(ctx, "ErrUnexpectedValue", err)
+			}
+
+			SubProc(ctx, err)
+		}
+
 		req, ok := getRequest[dto.TestRequest](w, r, validator) // refactor
 		if !ok {
 			return
 		}
 
-		log.CtxInfo(ctx, "Test")
+		logctx.Info(ctx, "Test")
 
 		req.Number++
 		req.Message += " new"
@@ -39,5 +52,17 @@ func Test(validator validator.IValidator) http.HandlerFunc {
 			Message: req.Message,
 			Mes:     req.Mes,
 		})
+	}
+}
+
+func SubProc(ctx context.Context, err error) {
+	ctx = tracectx.Next(ctx)
+
+	if errors.Is(err, types.ErrUnexpectedValueInEnum) {
+		logctx.Error(ctx, "ErrUnexpectedValueInEnum", err)
+	}
+
+	if errors.Is(err, dto.ErrUnexpectedValueInEnumSecretType) {
+		logctx.Error(ctx, "ErrUnexpectedValueInEnumSecretType", err)
 	}
 }

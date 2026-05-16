@@ -5,14 +5,22 @@ package mask
 type IMasker interface {
 	// Mask masks data represented as a slice of bytes according to the rules
 	// described in the IMaskable interface for a specific type.
-	Mask(data []byte, rules IMaskable) (string, error)
+	Mask(data []byte, rules IMaskable) (string, error) // m.b. error to bool
+
+	// MaskBytes(data []byte, rules []Rule) ([]byte, error)
 }
 
 // IMaskable describes an interface for types that need to be masked when written somewhere.
+//
+// Interface functions immediately return masked data to allow testing. This allows us to eliminate
+// unnecessary errors in the application's operation by covering this area with tests.
 type IMaskable interface {
 	// Rules returns the rules for masking fields for the type.
-	Rules() []Rule
+	Rules() []Rule // remove rules in MaskBytes()
 
-	// replace on Mask(data []byte) for testing
-	// нужно сразу иметь возможность тестами покрыть ошибки маскирования
+	// Mask masks data in the model, returning a new structure with the masked data.
+	// Mask() any
+
+	// MaskBytes masks serialized data according to type-specific rules.
+	// MaskBytes(data []byte) []byte
 }

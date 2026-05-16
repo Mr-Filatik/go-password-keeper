@@ -16,6 +16,8 @@ type ZapSugarLogger struct {
 	// logLevel - Logging level.
 	logLevel log.LogLevel
 
+	autoTracing bool
+
 	globalFields []any
 }
 
@@ -66,13 +68,15 @@ func NewZapSugarLogger(
 	zapSugarLogger := &ZapSugarLogger{
 		log:          zapLogger.With(config.GetGlobalFields()...),
 		logLevel:     logLevel,
+		autoTracing:  config.GetAutoTracing(),
 		globalFields: config.GetGlobalFields(),
 	}
 
 	log.LogInfo(zapSugarLogger, "ZapSugar logger initialize is successful",
 		log.WithDataField(map[string]any{
-			"format": config.GetFormat(),
-			"level":  logLevel.String(),
+			"format":                    config.GetFormat(),
+			"level":                     logLevel.String(),
+			"auto_tracing_from_context": config.GetAutoTracing(),
 		}))
 
 	return zapSugarLogger, nil
@@ -119,6 +123,7 @@ func (l *ZapSugarLogger) With(options ...log.FieldOption) log.ILogger {
 	return &ZapSugarLogger{
 		log:          l.log.With(unique...),
 		logLevel:     l.logLevel,
+		autoTracing:  l.autoTracing,
 		globalFields: unique,
 	}
 }
@@ -219,6 +224,10 @@ func (l *ZapSugarLogger) Close() error {
 	_ = l.log.Sync() // На Windows zap.Sync может возвращать ошибку – игнорируем.
 
 	return nil
+}
+
+func (l *ZapSugarLogger) IsAutoTracing() bool {
+	return l.autoTracing
 }
 
 // levelToZapCoreLevel — mapping LogLevel to zapcore.Level.

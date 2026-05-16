@@ -2,6 +2,8 @@ package log
 
 import (
 	"fmt"
+
+	"github.com/mr-filatik/go-password-keeper/internal/platform/trace"
 )
 
 type FieldOption func(args []any) []any
@@ -104,9 +106,23 @@ func WithRequestIDField(requestID string) FieldOption {
 	}
 }
 
+func WithAdvancedTraceField(trace trace.Trace) []FieldOption {
+	return []FieldOption{
+		WithTraceIDField(trace.TraceID()),
+		WithParentIDField(trace.ParentID()),
+		WithSpanIDField(trace.SpanID()),
+	}
+}
+
 func WithTraceIDField(traceID string) FieldOption {
 	return func(args []any) []any {
 		return append(args, FieldTraceID, traceID)
+	}
+}
+
+func WithParentIDField(parentID string) FieldOption {
+	return func(args []any) []any {
+		return append(args, FieldParentID, parentID)
 	}
 }
 

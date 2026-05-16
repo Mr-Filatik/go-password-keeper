@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	logctx "github.com/mr-filatik/go-password-keeper/internal/platform/ctx/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/http/diagnostic"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
@@ -73,7 +74,7 @@ func (a *App) Start(ctx context.Context) error {
 			WriteStartMetric(a.mainComponent, metrics.StartStatusFailed, startTime, a.metricsProvider)
 
 			err := fmt.Errorf("%w: diagnostic server: %v", ErrComponentStarting, diagStartErr.Error())
-			log.CtxError(ctx, "Starting diagnostic server error", err)
+			logctx.Error(ctx, "Starting diagnostic server error", err)
 
 			return err
 		}

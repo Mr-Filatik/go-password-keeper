@@ -1,5 +1,7 @@
 package middleware_test
 
+import "github.com/mr-filatik/go-password-keeper/internal/platform/log"
+
 // import (
 // 	"context"
 // 	"net/http"
@@ -11,38 +13,38 @@ package middleware_test
 // 	"github.com/stretchr/testify/assert"
 // )
 
-// type MockLogger struct {
-// 	loggedMessages []string
-// }
+type MockLogger struct {
+	loggedMessages []string
+}
 
-// //nolint:ireturn
-// func (m *MockLogger) With(_ ...interface{}) logging.Logger {
-// 	return m
-// }
+//nolint:ireturn
+func (m *MockLogger) With(_ ...log.FieldOption) log.ILogger {
+	return m
+}
 
-// func (m *MockLogger) Debug(msg string, _ ...interface{}) {
-// 	m.loggedMessages = append(m.loggedMessages, "DEBUG: "+msg)
-// }
+func (m *MockLogger) Debug(msg string, _ ...log.FieldOption) {
+	m.loggedMessages = append(m.loggedMessages, "DEBUG: "+msg)
+}
 
-// func (m *MockLogger) Info(msg string, _ ...interface{}) {
-// 	m.loggedMessages = append(m.loggedMessages, "INFO: "+msg)
-// }
+func (m *MockLogger) Info(msg string, _ ...log.FieldOption) {
+	m.loggedMessages = append(m.loggedMessages, "INFO: "+msg)
+}
 
-// func (m *MockLogger) Warn(msg string, _ error, _ ...interface{}) {
-// 	m.loggedMessages = append(m.loggedMessages, "WARN: "+msg)
-// }
+func (m *MockLogger) Warn(msg string, _ error, _ ...log.FieldOption) {
+	m.loggedMessages = append(m.loggedMessages, "WARN: "+msg)
+}
 
-// func (m *MockLogger) Error(msg string, _ error, _ ...interface{}) {
-// 	m.loggedMessages = append(m.loggedMessages, "ERROR: "+msg)
-// }
+func (m *MockLogger) Error(msg string, _ error, _ ...log.FieldOption) {
+	m.loggedMessages = append(m.loggedMessages, "ERROR: "+msg)
+}
 
-// func (m *MockLogger) Fatal(msg string, _ error, _ ...interface{}) {
-// 	m.loggedMessages = append(m.loggedMessages, "FATAL: "+msg)
-// }
+func (m *MockLogger) Fatal(msg string, _ error, _ ...log.FieldOption) {
+	m.loggedMessages = append(m.loggedMessages, "FATAL: "+msg)
+}
 
-// func (m *MockLogger) Close() error {
-// 	return nil
-// }
+func (m *MockLogger) Close() error {
+	return nil
+}
 
 // func TestInjectLogger(t *testing.T) {
 // 	t.Parallel()
