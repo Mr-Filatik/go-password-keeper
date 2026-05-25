@@ -13,12 +13,12 @@ import (
 var ctxTraceKey = &commonctx.CtxKey{Name: "trace"}
 
 // SetTrace returns a new context containing the provided trace information.
-func SetTrace(ctx context.Context, value trace.Trace) context.Context {
+func SetTrace(ctx context.Context, value trace.ISpan) context.Context {
 	return commonctx.SetValue(ctx, ctxTraceKey, value)
 }
 
 // GetTrace extracts the trace information from the context.
 // It returns the trace data and a boolean indicating whether the trace was successfully found.
-func GetTrace(ctx context.Context) (trace.Trace, bool) {
-	return commonctx.GetValue[trace.Trace](ctx, ctxTraceKey)
+func GetTrace(ctx context.Context) (trace.ISpan, bool) {
+	return commonctx.GetValue[trace.ISpan](ctx, ctxTraceKey)
 }

@@ -129,3 +129,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./elk/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     command: ["-e", "--strict.perms=false"]
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: tracing-jaeger
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=info
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"

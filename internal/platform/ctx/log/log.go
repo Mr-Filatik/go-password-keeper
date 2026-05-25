@@ -46,13 +46,53 @@ func Fatal(ctx context.Context, msg string, err error, options ...log.FieldOptio
 func prepareLoggerAndOptions(ctx context.Context, options ...log.FieldOption) (log.ILogger, []log.FieldOption) {
 	logger := GetLogger(ctx)
 
-	autoLogger, ok := logger.(log.IAutoLogger)
-	if ok && autoLogger.IsAutoTracing() {
-		trace, ok := tracectx.GetTrace(ctx)
-		if ok {
-			options = append(options, log.WithAdvancedTraceField(trace)...)
-		}
+	// autoLogger, ok := logger.(log.IAutoLogger)
+	// if ok && autoLogger.IsAutoTracing() {
+	// 	// omit
+
+	// 	trace, ok := tracectx.GetTrace(ctx)
+	// 	if ok {
+	// 		options = append(options, log.WithAdvancedTraceField(trace)...)
+	// 	}
+	// }
+
+	trace, ok := tracectx.GetTrace(ctx)
+	if !ok {
+		return logger, options
 	}
+
+	options = append(options,
+		log.WithTraceIDField(trace.TraceID()),
+		log.WithSpanIDField(trace.SpanID()),
+	)
+
+	if trace.ParentSpanID() != "" {
+		options = append(options, log.WithParentIDField(trace.ParentSpanID()))
+	}
+
+	// span := trace.SpanFromContext(ctx)
+	// spanContext := span.SpanContext()
+
+	// if !spanContext.IsValid() {
+	// 	return logger, options
+	// }
+
+	// options = append(options,
+	// 	log.WithTraceIDField(spanContext.TraceID().String()),
+	// 	log.WithSpanIDField(spanContext.SpanID().String()),
+	// )
+
+	// if readOnlySpan, ok := span.(sdktrace.ReadOnlySpan); ok {
+	// 	// Получаем структуру родителя
+	// 	parent := readOnlySpan.Parent()
+
+	// 	// Проверяем, что у спана вообще был родитель
+	// 	if parent.IsValid() {
+	// 		options = append(options, log.WithParentIDField(parent.SpanID().String()))
+	// 	}
+	// }
 
 	return logger, options
 }
+
+// https://github.com/uptrace/opentelemetry-go-extra

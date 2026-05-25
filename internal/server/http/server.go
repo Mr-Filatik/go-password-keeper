@@ -35,6 +35,7 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/sequrity/mask/gabs"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/trace"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/handler"
@@ -51,6 +52,7 @@ type Server struct {
 	metricsProvider *metrics.Provider
 	logger          log.ILogger
 	validator       validator.IValidator
+	tracer          trace.ITracer
 	address         string
 
 	mu      sync.Mutex
@@ -71,7 +73,12 @@ const (
 )
 
 // NewServer - creates a new HTTP server instance.
-func NewServer(name string, conf ServerConfig, logger log.ILogger) *Server {
+func NewServer(
+	name string,
+	conf ServerConfig,
+	tracer trace.ITracer,
+	logger log.ILogger,
+) *Server {
 	tslNextProto := make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0)
 
 	srvr := &Server{
@@ -79,6 +86,7 @@ func NewServer(name string, conf ServerConfig, logger log.ILogger) *Server {
 		address:         conf.Address,
 		metricsProvider: conf.MetricsProvider,
 		logger:          logger.With(log.WithComponentField(name)),
+		tracer:          tracer,
 		validator:       validator.New(),
 		router:          chi.NewRouter(),
 		server: &http.Server{
@@ -222,7 +230,7 @@ func (s *Server) registerMiddlewares() {
 	s.router.Use(
 		// middleware.Recover(s.logger), // сделать глобальный recover???
 		middleware.InjectLogger(s.logger),
-		middleware.AdvancedTracing(),
+		middleware.Tracing(s.tracer),
 		// middleware.RequestID(), // простой и не паникует
 		// middleware.Limiter(...), // limiter: дешёво отстреливаем лишнее, защищает от DDoS / флудеров вообще.
 		// middleware.LimiterUserID(...), // Пользовательский (по user_id) — уже после Auth, в защищённой группе.
@@ -258,7 +266,9 @@ func (s *Server) registerMiddlewares() {
 
 func (s *Server) registerHandlers() {
 	s.router.Handle("/ping", http.HandlerFunc(s.ping))
-	s.router.Post("/test", handler.Test(s.validator))
+	s.router.Post("/test", handler.Test(s.validator, s.tracer))
+
+	metrics.RegisterHandler(s.router)
 
 	s.router.Handle("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("docs/swagger/server/doc.json"),

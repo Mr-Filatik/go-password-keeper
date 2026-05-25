@@ -10,8 +10,10 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform/app"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/caching/redis"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/log"
+	logwrapper "github.com/mr-filatik/go-password-keeper/internal/platform/log/wrapper"
 	zaplog "github.com/mr-filatik/go-password-keeper/internal/platform/log/zap"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
+	oteltrace "github.com/mr-filatik/go-password-keeper/internal/platform/trace/otel"
 	"github.com/mr-filatik/go-password-keeper/internal/server/config"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
@@ -80,6 +82,27 @@ func Run() {
 			Password: "csnskcnsckn",
 		}))
 
+	// ===== CREATING TRACING =====
+
+	traceProvider, tpErr := oteltrace.NewTracerProvider(exitCtx, oteltrace.TracerProviderConfig{
+		InsecureMode: true,
+		Endpoint:     "localhost:4317",
+		Metadata: oteltrace.TracerProviderConfigMetadata{
+			ServiceName: projectName + "-" + appName,
+			Version:     "1.0.0",
+			Environment: "local",
+		},
+	}, logger)
+	if tpErr != nil {
+		panic(tpErr)
+	}
+
+	tracer := traceProvider.Tracer("general")
+
+	//tracer.Start(context.TODO(), "name", trace.)
+	//otel.SetTracerProvider(tracer)
+	// trace.Rea
+
 	// ===== CREATING METRICS =====
 
 	metricsProvider := metrics.CreateProvider(namespace, projectName, appName)
@@ -94,6 +117,12 @@ func Run() {
 		Number: "unknown",
 	})
 
+	logger = logwrapper.NewMetricWrapper(logger, func(level log.LogLevel) {
+		metricsProvider.Log.IncLogsCounter(metrics.LogLabel{
+			Level: level.String(),
+		})
+	})
+
 	// ===== CREATING SERVICES =====
 
 	mainServer := http.NewServer(
@@ -101,14 +130,14 @@ func Run() {
 		http.ServerConfig{
 			Address:         appConfig.Address,
 			MetricsProvider: metricsProvider,
-		}, logger)
+		}, tracer, logger)
 
 	addServer := http.NewServer(
 		"add http server",
 		http.ServerConfig{
 			Address:         ":31212",
 			MetricsProvider: metricsProvider,
-		}, logger)
+		}, tracer, logger)
 
 	cacher := redis.NewCacher("redis cacher",
 		redis.CacherConfig{

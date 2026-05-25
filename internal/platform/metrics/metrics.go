@@ -19,6 +19,8 @@ type Provider struct {
 
 	// Experiment - a reference to an object for working with experiment metrics
 	Experiment *ExperimentMetrics
+
+	Log *LogMetrics
 }
 
 // CreateProvider creates an instance of a provider for application metrics.
@@ -38,6 +40,7 @@ func CreateProvider(namespace, projectName, appName string) *Provider {
 		App:        NewAppMetrics(baseMetrics),
 		HTTP:       NewHTTPMetrics(baseMetrics),
 		Experiment: NewExperimentMetrics(baseMetrics),
+		Log:        NewLogMetrics(baseMetrics),
 	}
 
 	return provider

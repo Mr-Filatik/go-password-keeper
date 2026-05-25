@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	logctx "github.com/mr-filatik/go-password-keeper/internal/platform/ctx/log"
-	tracectx "github.com/mr-filatik/go-password-keeper/internal/platform/ctx/trace"
+	"github.com/mr-filatik/go-password-keeper/internal/platform/trace"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/types"
 	"github.com/mr-filatik/go-password-keeper/internal/platform/validator"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
@@ -24,9 +25,14 @@ import (
 //	@Failure		400		{object}	dto.ErrorResponse	"Invalid request format or validation error"
 //	@Failure		500		{object}	dto.ErrorResponse	"Internal server error"
 //	@Router			/test [post]
-func Test(validator validator.IValidator) http.HandlerFunc {
+func Test(validator validator.IValidator, tracer trace.ITracer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+
+		ctx, span := tracer.Start(ctx, "handler-test")
+		defer span.End()
+
+		time.Sleep(250 * time.Millisecond)
 
 		_, err := dto.SecretTypeFromString("aaa")
 		if err != nil {
@@ -34,7 +40,7 @@ func Test(validator validator.IValidator) http.HandlerFunc {
 				logctx.Error(ctx, "ErrUnexpectedValue", err)
 			}
 
-			SubProc(ctx, err)
+			SubProc(ctx, err, tracer)
 		}
 
 		req, ok := getRequest[dto.TestRequest](w, r, validator) // refactor
@@ -55,8 +61,11 @@ func Test(validator validator.IValidator) http.HandlerFunc {
 	}
 }
 
-func SubProc(ctx context.Context, err error) {
-	ctx = tracectx.Next(ctx)
+func SubProc(ctx context.Context, err error, tracer trace.ITracer) {
+	ctx, span := tracer.Start(ctx, "sub-proc")
+	defer span.End()
+
+	time.Sleep(25 * time.Millisecond)
 
 	if errors.Is(err, types.ErrUnexpectedValueInEnum) {
 		logctx.Error(ctx, "ErrUnexpectedValueInEnum", err)
