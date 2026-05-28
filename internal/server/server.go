@@ -15,6 +15,7 @@ import (
 	"github.com/mr-filatik/go-password-keeper/internal/platform/metrics"
 	oteltrace "github.com/mr-filatik/go-password-keeper/internal/platform/trace/otel"
 	"github.com/mr-filatik/go-password-keeper/internal/server/config"
+	devconfig "github.com/mr-filatik/go-password-keeper/internal/server/config/dev"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http"
 	"github.com/mr-filatik/go-password-keeper/internal/server/http/dto"
 )
@@ -65,6 +66,20 @@ func Run() {
 		syscall.SIGTERM,
 		syscall.SIGQUIT)
 	defer exitFn()
+
+	devConfig, devErr := devconfig.LoadDevConfig("")
+	if devErr != nil {
+		panic(devErr)
+	}
+
+	log.LogInfo(logger, "DevConfig...",
+		log.WithDataField(map[string]bool{
+			string(devConfig.Mode):       true,
+			string(devconfig.AccountAPI): devConfig.IsEnabled(devconfig.AccountAPI),
+			string(devconfig.ClientAPI):  devConfig.IsEnabled(devconfig.ClientAPI),
+			string(devconfig.Database):   devConfig.IsEnabled(devconfig.Database),
+			string(devconfig.KafkaDWH):   devConfig.IsEnabled(devconfig.KafkaDWH),
+		}))
 
 	appConfig := config.Initialize()
 
