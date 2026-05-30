@@ -18,3 +18,8 @@ var (
 	// Пример: fmt.Errorf("%w (MyEnum)", types.ErrUnexpectedValueInEnum).
 	ErrUnexpectedValueInEnum = fmt.Errorf("%w in enum", ErrUnexpectedValue)
 )
+
+var (
+	// ErrParsing описывает общую ошибку при парсингe.
+	ErrParsing = errors.New("failed to parse")
+)
